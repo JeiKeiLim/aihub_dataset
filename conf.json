@@ -1,0 +1,7 @@
+{
+  "dataset_root": "/Users/jeikei/Documents/datasets/aihub_kproducts",
+  "annotation_path": "./converted_annotation.csv",
+  "image_w": 540,
+  "image_h":405,
+  "class_key": "소분류"
+}
