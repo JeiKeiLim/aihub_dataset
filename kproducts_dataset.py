@@ -122,11 +122,11 @@ class KProductsDataset:
         mp_args = [[self.config['dataset_root']] + arg for arg in mp_args]
 
         if multiprocess:
-            p_umap(partial(KProductsDataset.resize_image, target_w=target_w, target_root=target_root, skip_exists=skip_exists),
+            p_umap(partial(KProductsDataset.resize_image, target_w=target_w, target_root=target_root, skip_exists=skip_exists, copy_annotation=copy_annotation),
                    mp_args, desc="Resizing Images ...", num_cpus=num_cpus)
         else:
             for arg in tqdm(mp_args, desc="Resizing Images ..."):
-                KProductsDataset.resize_image(arg, target_w=target_w, target_root=target_root, skip_exists=skip_exists)
+                KProductsDataset.resize_image(arg, target_w=target_w, target_root=target_root, skip_exists=skip_exists, copy_annotation=copy_annotation)
 
     def get_distribution(self, key='소분류'):
         """

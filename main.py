@@ -8,7 +8,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--conf", default="./conf.json", type=str, help="Configuration file path.")
     parser.add_argument("--resize", default=False, action='store_true', help="Resize Image and Save to --target-path")
-    parser.add_argument("--resize-no-copy-annotation", default=True, action='store_false', help="Copy annotaion json file on resizing")
+    parser.add_argument("--resize-no-copy-annotation", default=True, desc='resize_copy_annotation', action='store_false', help="Copy annotaion json file on resizing")
     parser.add_argument("--resize-num-cpus", default="1.0", type=str, help="Number(int) or proportion(float) of cpus to utilize in multiprocess. (Ex: 1 = One Core, 1.0 = All Core)")
     parser.add_argument("--resize-no-multi-process", dest="resize_multi_process", default=True, action='store_false', help="Use Multi Process on Resizing Images")
     parser.add_argument("--target-root", default="./export", type=str, help="Target Directory Path.")
@@ -44,7 +44,7 @@ if __name__ == "__main__":
             num_cpus = int(args.resize_num_cpus)
 
         dataset.resize_dataset(target_w=args.target_w, target_root=args.target_root, skip_exists=args.skip_exists,
-                               multiprocess=args.resize_multi_process, num_cpus=num_cpus)
+                               multiprocess=args.resize_multi_process, num_cpus=num_cpus, copy_annotation=args.resize_copy_annotation)
 
     if args.vectorize or args.cluster or args.reconstruct:
         from cluster_dataset import ClusterData
