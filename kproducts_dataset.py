@@ -155,7 +155,11 @@ class KProductsDataset:
         target = self.annotations.iloc[idx]
 
         img_path = f"{self.config['dataset_root']}/{target['file_root']}/{target['file_name']}"
-        img = Image.open(img_path)
+        try:
+            img = Image.open(img_path)
+        except:
+            print("Error Opening Image file {}".format(img_path))
+            return None, target
 
         return img, target
 

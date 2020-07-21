@@ -1,5 +1,5 @@
 {
-  "dataset_root": "/Users/jeikei/Documents/datasets/aihub_kproducts",
+  "dataset_root": "/Users/jeikei/Documents/datasets/aihub_kproduct_resized",
   "annotation_path": "./converted_annotation.csv",
   "image_w": 540,
   "image_h":405,

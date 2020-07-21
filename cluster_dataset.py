@@ -90,15 +90,21 @@ class ClusterData:
         annot_index = annotation.index
 
         feature_vector = np.empty((0, self.model_n_out))
+        drop_index = []
         for b in tqdm(range(0, total, batch_size), desc="Vectorize Images ..."):
             batch_imgs = [self.dataset.get_data(annot_index[i])[0] for i in range(b, min(b+batch_size, total))]
+
             batch_imgs = np.array([np.array(img.resize(self.model_input_size[::-1]), dtype=np.uint8)
-                                   for img in batch_imgs])
+                                   for img in batch_imgs if img is not None])
             batch_imgs = self.preprocess_func(batch_imgs)
 
             predict_result = self.model.predict(batch_imgs)
 
             feature_vector = np.concatenate([feature_vector, predict_result])
+
+            drop_index += [i for i in range(len(batch_imgs)) if batch_imgs[b+i] is None]
+
+        annotation.drop(drop_index)
 
         save_root = f"{self.dataset.config['dataset_root']}/{annotation['file_root'].iloc[0]}"
         pd_feat_vector = pd.DataFrame(feature_vector)
