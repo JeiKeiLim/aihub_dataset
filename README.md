@@ -11,6 +11,17 @@ p_tqdm>=1.3.3
 tensorflow>=2.2.0 (Optional. Required for clustering dataset only)
 ```
 
+# conf.json
+``` json
+{
+  "dataset_root": "/Users/jeikei/Documents/datasets/aihub_kproduct_resized",
+  "annotation_path": "./converted_annotation.csv",
+  "image_w": 540,
+  "image_h":405,
+  "class_key": "소분류"
+}
+```
+
 # USAGE
 ```
 usage: main.py [-h] [--conf CONF] [--resize]
