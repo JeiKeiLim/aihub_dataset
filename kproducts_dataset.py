@@ -95,21 +95,24 @@ class KProductsDataset:
         except FileNotFoundError:
             print("Open file failed on {} -> {}".format(img_path, target_path))
 
-    def resize_dataset(self, target_w=320, target_root="./export", skip_exists=True, multiprocess=True):
+    def resize_dataset(self, target_w=320, target_root="./export", skip_exists=True, multiprocess=True, num_cpus=1.0):
         """
         Resize images from entires dataset.
         This functions uses multi-cores. Be aware that it will slow down your computer.
 
         Args:
             target_w (int): Target width for resizing. Height is automatically set by ratio.
-            target_root: Target dataset root to save resized images.
+            target_root (str): Target dataset root to save resized images.
+            skip_exists (bool): True: Skip resizing if resized file already exists.
+            multiprocess (bool): Use multi process.
+            num_cpus (int, float): Number(int) or proportion(float) of cpus to utilize in multiprocess.
         """
         mp_args = self.annotations[['file_root', 'file_name']].values.tolist()
         mp_args = [[self.config['dataset_root']] + arg for arg in mp_args]
 
         if multiprocess:
             p_umap(partial(KProductsDataset.resize_image, target_w=target_w, target_root=target_root, skip_exists=skip_exists),
-                   mp_args, desc="Resizing Images ...")
+                   mp_args, desc="Resizing Images ...", num_cpus=num_cpus)
         else:
             for arg in tqdm(mp_args, desc="Resizing Images ..."):
                 KProductsDataset.resize_image(arg, target_w=target_w, target_root=target_root, skip_exists=skip_exists)
