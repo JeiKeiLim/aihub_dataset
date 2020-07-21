@@ -21,7 +21,10 @@ usage: main.py [-h] [--conf CONF] [--resize]
                [--vectorize-model VECTORIZE_MODEL]
                [--model-input-w MODEL_INPUT_W] [--model-input-h MODEL_INPUT_H]
                [--vectorize-multi-process] [--batch-size BATCH_SIZE]
-
+               [--cluster] [--eps EPS] [--show-cluster-plot] [--save-plot]
+               [--reconstruct] [--reconstruct-root RECONSTRUCT_ROOT]
+               [--reconstruct-annotation-name RECONSTRUCT_ANNOTATION_NAME]
+               [--no-include-non-core]
 optional arguments:
   -h, --help            show this help message and exit
   --conf CONF           Configuration file path. (default: ./conf.json)
@@ -58,5 +61,19 @@ optional arguments:
                         Use Multi Process on Vectorization. (default: False)
   --batch-size BATCH_SIZE
                         Batch Size (default: 32)
-
+  --cluster             Perform Clustering in vectorization features (default:
+                        False)
+  --eps EPS             Epsilon Parameter for DBSCAN Clustering (default: 0.1)
+  --show-cluster-plot   Plot Cluster Result (default: False)
+  --save-plot           Save Clustered Result Image (default: False)
+  --reconstruct         Reconstruct dataset from clustering result (default:
+                        False)
+  --reconstruct-root RECONSTRUCT_ROOT
+                        Reconstruct dataset root directory (default: ./export)
+  --reconstruct-annotation-name RECONSTRUCT_ANNOTATION_NAME
+                        Reconstruct dataset annotation file name (default:
+                        converted_annotation.csv)
+  --no-include-non-core
+                        Whether including non-core clustering index (default:
+                        True)
 ```

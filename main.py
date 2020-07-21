@@ -21,6 +21,14 @@ if __name__ == "__main__":
     parser.add_argument("--model-input-h", default=224, type=int, help="Vectorize Model Input Height")
     parser.add_argument("--vectorize-multi-process", default=False, action='store_true', help="Use Multi Process on Vectorization.")
     parser.add_argument("--batch-size", default=32, type=int, help="Batch Size")
+    parser.add_argument("--cluster", default=False, action='store_true', help="Perform Clustering in vectorization features")
+    parser.add_argument("--eps", default=0.1, type=float, help="Epsilon Parameter for DBSCAN Clustering")
+    parser.add_argument("--show-cluster-plot", default=False, action='store_true', help="Plot Cluster Result")
+    parser.add_argument("--save-plot", default=False, action='store_true', help="Save Clustered Result Image")
+    parser.add_argument("--reconstruct", default=False, action='store_true', help="Reconstruct dataset from clustering result")
+    parser.add_argument("--reconstruct-root", default="./export", type=str, help="Reconstruct dataset root directory")
+    parser.add_argument("--reconstruct-annotation-name", default="converted_annotation.csv", type=str, help="Reconstruct dataset annotation file name")
+    parser.add_argument("--no-include-non-core", dest="include_non_core", default=True, action='store_false', help="Whether including non-core clustering index")
 
     args = parser.parse_args()
 
@@ -37,8 +45,9 @@ if __name__ == "__main__":
         dataset.resize_dataset(target_w=args.target_w, target_root=args.target_root, skip_exists=args.skip_exists,
                                multiprocess=args.resize_multi_process, num_cpus=num_cpus)
 
-    if args.vectorize:
+    if args.vectorize or args.cluster or args.reconstruct:
         from cluster_dataset import ClusterData
+
         if args.vectorize_model not in ClusterData.name_to_model_dict.keys():
             print("Wrong Model Name!")
             parser.print_help()
@@ -46,4 +55,15 @@ if __name__ == "__main__":
 
         base_model = ClusterData.name_to_model_dict[args.vectorize_model]
         cluster_data = ClusterData(dataset, model_input_size=(args.model_input_h, args.model_input_w), BaseModel=base_model)
-        cluster_data.vectorize_dataset(multiprocess=args.vectorize_multi_process, batch_size=args.batch_size)
+
+        if args.vectorize:
+            cluster_data.vectorize_dataset(multiprocess=args.vectorize_multi_process, batch_size=args.batch_size)
+
+        if args.cluster:
+            cluster_data.cluster_dataset(eps=args.eps, plot=args.show_cluster_plot, save_plot=args.save_plot)
+
+        if args.reconstruct:
+            cluster_data.reconstruct_from_cluster_result(target_root=args.reconstruct_root,
+                                                         target_annotation_name=args.reconstruct_annotation_name,
+                                                         include_non_core=args.include_non_core)
+
