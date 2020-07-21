@@ -1,0 +1,62 @@
+# aihub_dataset
+## Reading KProduct dataset in http://aihub.or.kr
+
+# Requirements
+```
+pandas>=1.0.5
+matplotlib>=3.3.0
+tqdm>=4.48.0
+p_tqdm>=1.3.3
+
+tensorflow>=2.2.0 (Optional. Required for clustering dataset only)
+```
+
+# USAGE
+```
+usage: main.py [-h] [--conf CONF] [--resize]
+               [--resize-num-cpus RESIZE_NUM_CPUS] [--resize-no-multi-process]
+               [--target-root TARGET_ROOT] [--skip-exists]
+               [--target-w TARGET_W] [--refresh-annot]
+               [--refresh-multi-process] [--vectorize]
+               [--vectorize-model VECTORIZE_MODEL]
+               [--model-input-w MODEL_INPUT_W] [--model-input-h MODEL_INPUT_H]
+               [--vectorize-multi-process] [--batch-size BATCH_SIZE]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --conf CONF           Configuration file path. (default: ./conf.json)
+  --resize              Resize Image and Save to --target-path (default:
+                        False)
+  --resize-num-cpus RESIZE_NUM_CPUS
+                        Number(int) or proportion(float) of cpus to utilize in
+                        multiprocess. (Ex: 1 = One Core, 1.0 = All Core)
+                        (default: 1.0)
+  --resize-no-multi-process
+                        Use Multi Process on Resizing Images (default: True)
+  --target-root TARGET_ROOT
+                        Target Directory Path. (default: ./export)
+  --skip-exists         Skip Process if file already exists (default: False)
+  --target-w TARGET_W   Target width size for resizing images (default: 320)
+  --refresh-annot       Refresh Annotation. (default: False)
+  --refresh-multi-process
+                        Use Multi Process on Refreshing Annotations (default:
+                        False)
+  --vectorize           Vecotorize Images by output of ImageNet Pre-trained
+                        Model for further clustering purpose. (default: False)
+  --vectorize-model VECTORIZE_MODEL
+                        Possible values: (densenet121, densenet169,
+                        densenet201, inceptionresnetv2, inceptionv3,
+                        mobilenet, mobilenetv2, nasnetlarge, nasnetmobile,
+                        resnet101, resnet101v2, resnet152, resnet152v2,
+                        resnet50, resnet50v2, vgg16, vgg19, xception)
+                        (default: resnet152v2)
+  --model-input-w MODEL_INPUT_W
+                        Vectorize Model Input Width (default: 224)
+  --model-input-h MODEL_INPUT_H
+                        Vectorize Model Input Height (default: 224)
+  --vectorize-multi-process
+                        Use Multi Process on Vectorization. (default: False)
+  --batch-size BATCH_SIZE
+                        Batch Size (default: 32)
+
+```
