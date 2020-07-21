@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 from p_tqdm import p_umap, p_map
 from functools import partial
+import shutil
 
 
 class KProductsDataset:
@@ -66,7 +67,7 @@ class KProductsDataset:
         return annotations, unique_labels
 
     @staticmethod
-    def resize_image(args, target_w=320, target_root="./export", skip_exists=True):
+    def resize_image(args, target_w=320, target_root="./export", skip_exists=True, copy_annotation=True):
         """
         Resize Image and save to the target_root
         Args:
@@ -75,13 +76,23 @@ class KProductsDataset:
                 file_root (str): Image file root from dataset_root.
                 file_name (str): Image file name
             target_w (int): Target width for resizing. Height is automatically set by ratio.
-            target_root: Target dataset root to save resized images.
+            target_root (str): Target dataset root to save resized images.
+            skip_exists (bool): Skip if the image already exists
+            copy_annotation (bool): Copy annotation
         """
         dataset_root, file_root, file_name = args
 
         target_file_root = f"{target_root}/{file_root}"
         os.makedirs(target_file_root, exist_ok=True)
         target_path = f"{target_file_root}/{file_name}"
+
+        if copy_annotation:
+            annot_path = f"{dataset_root}/{file_root}/{file_name[:-4]}.json"
+            target_annot_path = f"{target_path[:-4]}.json"
+            try:
+                shutil.copy2(annot_path, target_annot_path)
+            except:
+                print("Copy failed from {} to {}".format(annot_path, target_annot_path))
 
         if skip_exists and os.path.isfile(target_path):
             return
@@ -95,7 +106,7 @@ class KProductsDataset:
         except FileNotFoundError:
             print("Open file failed on {} -> {}".format(img_path, target_path))
 
-    def resize_dataset(self, target_w=320, target_root="./export", skip_exists=True, multiprocess=True, num_cpus=1.0):
+    def resize_dataset(self, target_w=320, target_root="./export", skip_exists=True, multiprocess=True, num_cpus=1.0, copy_annotation=True):
         """
         Resize images from entires dataset.
         This functions uses multi-cores. Be aware that it will slow down your computer.

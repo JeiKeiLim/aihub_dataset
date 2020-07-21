@@ -56,7 +56,7 @@ python main.py --vectorize --vectorize-model resnet152v2 --batch-size 32 --clust
 
 # USAGE
 ```
-usage: main.py [-h] [--conf CONF] [--resize]
+usage: main.py [-h] [--conf CONF] [--resize] [--resize-no-copy-annotation]
                [--resize-num-cpus RESIZE_NUM_CPUS] [--resize-no-multi-process]
                [--target-root TARGET_ROOT] [--skip-exists]
                [--target-w TARGET_W] [--refresh-annot]
@@ -73,6 +73,8 @@ optional arguments:
   --conf CONF           Configuration file path. (default: ./conf.json)
   --resize              Resize Image and Save to --target-path (default:
                         False)
+  --resize-no-copy-annotation
+                        Copy annotaion json file on resizing (default: True)
   --resize-num-cpus RESIZE_NUM_CPUS
                         Number(int) or proportion(float) of cpus to utilize in
                         multiprocess. (Ex: 1 = One Core, 1.0 = All Core)
@@ -119,6 +121,7 @@ optional arguments:
   --no-include-non-core
                         Whether including non-core clustering index (default:
                         True)
+
 ```
 
 
