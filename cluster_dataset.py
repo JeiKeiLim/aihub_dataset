@@ -102,7 +102,7 @@ class ClusterData:
 
             feature_vector = np.concatenate([feature_vector, predict_result])
 
-            drop_index += [i for i in range(len(batch_imgs)) if batch_imgs[b+i] is None]
+            drop_index += [b+i for i in range(len(batch_imgs)) if batch_imgs[i] is None]
 
         annotation.drop(drop_index)
 
