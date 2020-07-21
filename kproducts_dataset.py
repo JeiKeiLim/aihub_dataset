@@ -7,7 +7,7 @@ from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
-from p_tqdm import p_umap
+from p_tqdm import p_umap, p_map
 from functools import partial
 
 
@@ -15,9 +15,8 @@ class KProductsDataset:
     """
     Reading KProduct Dataset on AI Hub
     """
-    def __init__(self, conf_or_path, refresh_annot=False):
+    def __init__(self, conf_or_path, refresh_annot=False, refresh_multi_process=False):
         """
-
         Args:
             conf_or_path (dict, str): Dataset Configuration json dict or path
             refresh_annot (bool): Refresh Converted Annotation File
@@ -28,7 +27,7 @@ class KProductsDataset:
             with open(conf_or_path, 'r') as f:
                 self.config = json.load(conf_or_path)
 
-        self.annotations, self.unique_labels = self.read_annotations(refresh=refresh_annot)
+        self.annotations, self.unique_labels = self.read_annotations(refresh=refresh_annot, multiprocess=refresh_multi_process)
 
     def get_annotation_path_list(self):
         annot_path_list = [(root, file_name)
@@ -38,7 +37,7 @@ class KProductsDataset:
 
         return annot_path_list
 
-    def read_annotations(self, refresh=False):
+    def read_annotations(self, refresh=False, multiprocess=False):
         """
         Read Annotations and Convert into one csv file.
         If converted annotation file already exists, it directly reads from it unless refresh is set to True.
@@ -53,7 +52,11 @@ class KProductsDataset:
             annotations = pd.read_csv(self.config['annotation_path'])
         else:
             annot_path_list = self.get_annotation_path_list()
-            annotations = [convert_annotation(root, file_name) for root, file_name in tqdm(annot_path_list, desc="Converting Annotations ...")]
+            if multiprocess:
+                annotations = p_map(convert_annotation, annot_path_list, desc="Converting Annotations ...")
+            else:
+                annotations = [convert_annotation([root, file_name]) for root, file_name in tqdm(annot_path_list, desc="Converting Annotations ...")]
+
             annotations = [annotation for annotation in annotations if annotation is not None]
             annotations = pd.DataFrame(annotations)
             annotations.to_csv(self.config['annotation_path'], index=False)
@@ -63,7 +66,7 @@ class KProductsDataset:
         return annotations, unique_labels
 
     @staticmethod
-    def resize_image(args, target_w=320, target_root="./export"):
+    def resize_image(args, target_w=320, target_root="./export", skip_exists=True):
         """
         Resize Image and save to the target_root
         Args:
@@ -78,15 +81,21 @@ class KProductsDataset:
 
         target_file_root = f"{target_root}/{file_root}"
         os.makedirs(target_file_root, exist_ok=True)
+        target_path = f"{target_file_root}/{file_name}"
+
+        if skip_exists and os.path.isfile(target_path):
+            return
 
         img_path = f"{dataset_root}/{file_root}/{file_name}"
+        try:
+            img = Image.open(img_path)
+            target_h = int((target_w / img.size[0]) * img.size[1])
+            img = img.resize((target_w, target_h))
+            img.save(target_path)
+        except FileNotFoundError:
+            print("Open file failed on {} -> {}".format(img_path, target_path))
 
-        img = Image.open(img_path)
-        target_h = int((target_w / img.size[0]) * img.size[1])
-        img = img.resize((target_w, target_h))
-        img.save(f"{target_file_root}/{file_name}")
-
-    def resize_dataset(self, target_w=320, target_root="./export"):
+    def resize_dataset(self, target_w=320, target_root="./export", skip_exists=True, multiprocess=True):
         """
         Resize images from entires dataset.
         This functions uses multi-cores. Be aware that it will slow down your computer.
@@ -98,11 +107,12 @@ class KProductsDataset:
         mp_args = self.annotations[['file_root', 'file_name']].values.tolist()
         mp_args = [[self.config['dataset_root']] + arg for arg in mp_args]
 
-        p_umap(partial(KProductsDataset.resize_image, target_w=target_w, target_root=target_root),
-               mp_args, desc="Resizing Images ...")
-
-        # for file_root, file_name in tqdm(mp_args, desc="Resizing Images ..."):
-        #     self.resize_image(file_root, file_name, target_w=target_w, target_root=target_root)
+        if multiprocess:
+            p_umap(partial(KProductsDataset.resize_image, target_w=target_w, target_root=target_root, skip_exists=skip_exists),
+                   mp_args, desc="Resizing Images ...")
+        else:
+            for arg in tqdm(mp_args, desc="Resizing Images ..."):
+                KProductsDataset.resize_image(arg, target_w=target_w, target_root=target_root, skip_exists=skip_exists)
 
     def get_distribution(self, key='소분류'):
         """
@@ -159,18 +169,20 @@ class KProductsDataset:
         plt.show()
 
 
-def convert_annotation(root, annot_or_filename):
+def convert_annotation(args):
     """
     Convert Original annotation json file to python dict type
 
     Args:
-        root (str): Dataset root directory
-        annot_or_filename (dict, str): Annotation dict or path
-
+        args (list, tuple): Contains two arguments. (root, annot_or_filename)
+            root (str): Dataset root directory
+            annot_or_filename (dict, str): Annotation dict or path
     Returns:
         (dict): Converted annotation dict type
 
     """
+    root, annot_or_filename = args
+
     if type(annot_or_filename) == dict:
         annot = annot_or_filename
     else:
