@@ -22,6 +22,38 @@ tensorflow>=2.2.0 (Optional. Required for clustering dataset only)
 }
 ```
 
+# Example
+## 1. Refresh/Generate converted annotation.csv
+``` shell
+python main.py --refresh-annot
+```
+
+## 2. Resize Entire Dataset
+``` shell
+python main.py --resize --target-root /resized/dataset/root
+```
+## 3. Clustering Dataset
+### 3.1. Vecorize Images (Further Clustering Purpose)
+``` shell
+python main.py --vectorize --vectorize-model resnet152v2 --batch-size 32
+```
+
+### 3.2. Cluster Images
+``` shell
+python main.py --cluster --eps 0.1
+```
+- eps value might require to change
+
+### 3.4. Reconstruct Dataset by Clustering Results
+``` shell
+python main.py --reconstruct --reconstruct-root /reconstruct/dataset/root
+```
+
+### 3.5. All at once
+``` shell
+python main.py --vectorize --vectorize-model resnet152v2 --batch-size 32 --cluster --eps 0.1 --reconstruct --reconstruct-root /reconstruct/dataset/root
+```
+
 # USAGE
 ```
 usage: main.py [-h] [--conf CONF] [--resize]
@@ -88,3 +120,5 @@ optional arguments:
                         Whether including non-core clustering index (default:
                         True)
 ```
+
+
