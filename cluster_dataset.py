@@ -205,7 +205,8 @@ class ClusterData:
         dbscan = DBSCAN(eps=eps, n_jobs=-1).fit(feature_vector.values)
         core_samples_mask = np.zeros_like(dbscan.labels_, dtype=bool)
         core_samples_mask[dbscan.core_sample_indices_] = True
-        if feature_vector.shape[0] != core_samples_mask.shape[0]:
+        
+        if annotation.shape[0] != core_samples_mask.shape[0]:
             print("Something went wrong here! annotation: {:,}, feature_vector: {:,}, {:,}, core_samples_mask: {:,}".format(annotation.shape[0], feature_vector.shape[0], feature_vector.values.shape[0], core_samples_mask.shape[0]))
             print(f"{self.dataset.config['dataset_root']}/{annotation.iloc[0]['file_root']}")
             raise IndexError
