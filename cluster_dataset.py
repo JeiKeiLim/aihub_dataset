@@ -92,7 +92,8 @@ class ClusterData:
         feature_vector = np.empty((0, self.model_n_out))
         drop_index = []
         for b in tqdm(range(0, total, batch_size), desc="Vectorize Images ..."):
-            batch_imgs = [self.dataset.get_data(annot_index[i])[0] for i in range(b, min(b+batch_size, total))]
+            batch_index = [annot_index[i] for i in range(b, min(b+batch_size, total))]
+            batch_imgs = [self.dataset.get_data(idx)[0] for idx in batch_index]
 
             batch_imgs = np.array([np.array(img.resize(self.model_input_size[::-1]), dtype=np.uint8)
                                    for img in batch_imgs if img is not None])
@@ -102,7 +103,7 @@ class ClusterData:
 
             feature_vector = np.concatenate([feature_vector, predict_result])
 
-            drop_index += [b+i for i in range(len(batch_imgs)) if batch_imgs[i] is None]
+            drop_index += [batch_index[i] for i in range(len(batch_imgs)) if batch_imgs[i] is None]
 
         annotation.drop(drop_index)
 
@@ -205,7 +206,7 @@ class ClusterData:
         dbscan = DBSCAN(eps=eps, n_jobs=-1).fit(feature_vector.values)
         core_samples_mask = np.zeros_like(dbscan.labels_, dtype=bool)
         core_samples_mask[dbscan.core_sample_indices_] = True
-        
+
         if annotation.shape[0] != core_samples_mask.shape[0]:
             print("Something went wrong here! annotation: {:,}, feature_vector: {:,}, {:,}, core_samples_mask: {:,}".format(annotation.shape[0], feature_vector.shape[0], feature_vector.values.shape[0], core_samples_mask.shape[0]))
             print(f"{self.dataset.config['dataset_root']}/{annotation.iloc[0]['file_root']}")
