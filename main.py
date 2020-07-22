@@ -1,6 +1,6 @@
 import json
 import argparse
-from kproducts_dataset import KProductsDataset
+from dataset.kproducts_dataset import KProductsDataset
 
 
 if __name__ == "__main__":
@@ -47,7 +47,7 @@ if __name__ == "__main__":
                                multiprocess=args.resize_multi_process, num_cpus=num_cpus, copy_annotation=args.resize_copy_annotation)
 
     if args.vectorize or args.cluster or args.reconstruct:
-        from cluster_dataset import ClusterData
+        from dataset.cluster_dataset import ClusterData
 
         if args.vectorize_model not in ClusterData.name_to_model_dict.keys():
             print("Wrong Model Name!")

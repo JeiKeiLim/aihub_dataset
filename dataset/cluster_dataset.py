@@ -1,4 +1,4 @@
-from kproducts_dataset import KProductsDataset
+from dataset.kproducts_dataset import KProductsDataset
 import tensorflow as tf
 import numpy as np
 from tqdm import tqdm
@@ -14,7 +14,6 @@ import shutil
 
 
 class ClusterData:
-
     """
     Cluster dataset on KProductsDataset
     Attributes:

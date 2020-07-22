@@ -26,9 +26,13 @@ class KProductsDataset:
             self.config = conf_or_path
         else:
             with open(conf_or_path, 'r') as f:
-                self.config = json.load(conf_or_path)
+                self.config = json.load(f)
 
         self.annotations, self.unique_labels = self.read_annotations(refresh=refresh_annot, multiprocess=refresh_multi_process)
+        if "label_dict" not in self.config.keys():
+            self.config['label_dict'] = {i: label for i, label in enumerate(self.unique_labels)}
+
+        self.n_classes = len(self.config['label_dict'])
 
     def get_annotation_path_list(self, multiprocess=False):
         annot_path_list = [(root, file_name)
