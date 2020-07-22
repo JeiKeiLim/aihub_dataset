@@ -30,12 +30,25 @@ class KProductsDataset:
 
         self.annotations, self.unique_labels = self.read_annotations(refresh=refresh_annot, multiprocess=refresh_multi_process)
 
-    def get_annotation_path_list(self):
+    def get_annotation_path_list(self, multiprocess=False):
         annot_path_list = [(root, file_name)
                            for root, dirs, files in os.walk(self.config['dataset_root'])
                            if len(files) > 1
                            for file_name in files if file_name.endswith("json")]
+        print("Annotation list: {}".format(len(annot_path_list)))
+        file_checker = lambda x: x if os.path.isfile(f"{x[0]}/{x[1]}") and \
+                                      (os.path.isfile(f"{x[0]}/{x[1][:-5]}.JPG") or os.path.isfile(f"{x[0]}/{x[1][:-5]}.jpg")) else None
+        if multiprocess:
+            annot_path_list = p_map(file_checker, annot_path_list, desc="Double-Check File List ...")
+            annot_path_list = [x for x in annot_path_list if x is not None]
+        else:
+            annot_path_list = [(root, file_name) for root, file_name in tqdm(annot_path_list, desc="Double-Check File List ...")
+                               if os.path.isfile(f"{root}/{file_name}") and
+                               (os.path.isfile(f"{root}/{file_name[:-5]}.JPG") or
+                                os.path.isfile(f"{root}/{file_name[:-5]}.jpg"))
+                               ]
 
+        print("Annotation list: {}".format(len(annot_path_list)))
         return annot_path_list
 
     def read_annotations(self, refresh=False, multiprocess=False):
@@ -52,7 +65,7 @@ class KProductsDataset:
         if os.path.isfile(self.config['annotation_path']) and refresh is False:
             annotations = pd.read_csv(self.config['annotation_path'])
         else:
-            annot_path_list = self.get_annotation_path_list()
+            annot_path_list = self.get_annotation_path_list(multiprocess=multiprocess)
             if multiprocess:
                 annotations = p_map(convert_annotation, annot_path_list, desc="Converting Annotations ...")
             else:
