@@ -7,6 +7,7 @@ pandas>=1.0.5
 matplotlib>=3.3.0
 tqdm>=4.48.0
 p_tqdm>=1.3.3
+scikit-learn>=0.23.1
 
 tensorflow>=2.2.0 (Optional. Required for clustering dataset only)
 ```
