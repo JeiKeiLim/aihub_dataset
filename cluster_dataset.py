@@ -105,7 +105,13 @@ class ClusterData:
 
             drop_index += [batch_index[i] for i in range(len(batch_imgs)) if batch_imgs[i] is None]
 
-        annotation.drop(drop_index)
+        if len(drop_index) > 0:
+            drop_list = [f"{r}/{f}" for r, f in annotation.iloc[drop_index][['file_root', 'file_name']].values]
+            print("Dropping annotation...")
+            for drop_file in drop_list:
+                print("..... {}".format(drop_file))
+
+            annotation.drop(drop_index)
 
         save_root = f"{self.dataset.config['dataset_root']}/{annotation['file_root'].iloc[0]}"
         pd_feat_vector = pd.DataFrame(feature_vector)
