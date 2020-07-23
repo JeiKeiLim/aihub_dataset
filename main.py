@@ -32,6 +32,7 @@ if __name__ == "__main__":
     parser.add_argument("--no-include-non-core", dest="include_non_core", default=True, action='store_false', help="Whether including non-core clustering index")
     parser.add_argument("--split-train-test", default=False, action='store_true', help="Splitting training and test set (Annotation only)")
     parser.add_argument("--split-balance-classes", default=False, action='store_true', help="Balancing Class Labels while splitting training and test set")
+    parser.add_argument("--split-train-ratio", default=0.7, type=float, help="Splitting Training dataset ratio")
 
     args = parser.parse_args()
 
@@ -70,4 +71,6 @@ if __name__ == "__main__":
             cluster_data.reconstruct_from_cluster_result(target_root=args.reconstruct_root,
                                                          target_annotation_name=args.reconstruct_annotation_name,
                                                          include_non_core=args.include_non_core)
-
+    if args.split_train_test:
+        dataset.split_train_test(train_ratio=args.split_train_ratio, balance_class=args.split_balance_classes)
+        
