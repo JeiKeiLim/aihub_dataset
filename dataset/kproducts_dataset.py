@@ -12,6 +12,7 @@ from functools import partial
 import shutil
 from util import prettyjson
 
+
 class KProductsDataset:
     """
     Reading KProduct Dataset on AI Hub
@@ -39,6 +40,37 @@ class KProductsDataset:
             f.write(prettyjson(self.config))
 
         self.n_classes = len(self.config['label_dict'])
+
+    def split_train_test(self, train_ratio=0.7, balance_class=False):
+        #TODO: Over-sample
+
+        if balance_class:
+            class_distribution = self.get_distribution(key=self.config['class_key'])
+            min_sample = min(class_distribution.values())
+
+            annotations = [self.annotations.query("{} == '{}'".format("소분류", label)).sample(n=min_sample)
+                           for label in self.unique_labels]
+
+            annotations = pd.concat(annotations)
+            annotations = annotations.sample(n=annotations.shape[0]).reset_index(drop=True)
+        else:
+            annotations = self.annotations.sample(n=self.annotations.shape[0]).reset_index(drop=True)
+
+        n_train = int(annotations.shape[0]*train_ratio)
+
+        train_annotation = annotations.iloc[:n_train]
+        test_annotation = annotations.iloc[n_train:]
+
+        root = self.config['annotation_path'].split("/")
+        root, file_name = "/".join(root[:-1]), root[-1]
+        ext_idx = file_name.rfind('.')
+        file_name = file_name[:ext_idx] if ext_idx > 0 else file_name
+
+        train_annotation.to_csv(f"{root}/{file_name}_train.csv", index=False)
+        test_annotation.to_csv(f"{root}/{file_name}_test.csv", index=False)
+
+        print("Train Annotation({:,}) saved to {}".format(train_annotation.shape[0], f"{root}/{file_name}_train.csv"))
+        print("Test Annotation({:,}) saved to {}".format(test_annotation.shape[0], f"{root}/{file_name}_test.csv"))
 
     def get_annotation_path_list(self, multiprocess=False):
         annot_path_list = [(root, file_name)
