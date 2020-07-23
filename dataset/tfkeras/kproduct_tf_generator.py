@@ -27,7 +27,7 @@ class KProductsTFGenerator:
             self.annotation = pd.read_csv(annotation)
 
         self.label_dict = label_dict
-        self.reverse_label = {value: key for key, value in self.label_dict.items()}
+        self.reverse_label = {value: int(key) for key, value in self.label_dict.items()}
         self.shuffle = shuffle
         self.class_key = class_key
         self.dataset_root = dataset_root

@@ -35,6 +35,7 @@ if __name__ == "__main__":
 
     with open(args.conf, 'r') as f:
         config = json.load(f)
+        config['self_path'] = args.conf
 
     dataset = KProductsDataset(config, refresh_annot=args.refresh_annot, refresh_multi_process=args.refresh_multi_process)
     if args.resize:

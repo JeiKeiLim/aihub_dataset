@@ -10,7 +10,7 @@ import matplotlib.font_manager as fm
 from p_tqdm import p_umap, p_map
 from functools import partial
 import shutil
-
+from util import prettyjson
 
 class KProductsDataset:
     """
@@ -27,10 +27,16 @@ class KProductsDataset:
         else:
             with open(conf_or_path, 'r') as f:
                 self.config = json.load(f)
+            self.config['self_path'] = conf_or_path
 
         self.annotations, self.unique_labels = self.read_annotations(refresh=refresh_annot, multiprocess=refresh_multi_process)
         if "label_dict" not in self.config.keys():
-            self.config['label_dict'] = {i: label for i, label in enumerate(self.unique_labels)}
+            self.config['label_dict'] = {str(i): label for i, label in enumerate(self.unique_labels)}
+        else:
+            self.config['label_dict'] = {i: label for i, label in self.config['label_dict'].items()}
+
+        with open(self.config['self_path'], 'w') as f:
+            f.write(prettyjson(self.config))
 
         self.n_classes = len(self.config['label_dict'])
 
