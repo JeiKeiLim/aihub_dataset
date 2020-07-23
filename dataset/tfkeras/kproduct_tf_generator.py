@@ -7,7 +7,7 @@ from dataset.tfkeras import preprocessing
 
 class KProductsTFGenerator:
     def __init__(self, annotation, label_dict, dataset_root, shuffle=False, class_key='소분류', image_size=(224, 224),
-                 augment_func=None, preprocess_func=preprocessing.preprocess_default, dtype=np.float32):
+                 augment_func=None, preprocess_func=preprocessing.preprocess_default, dtype=np.float32, seed=7777):
         """
 
         Args:
@@ -25,6 +25,8 @@ class KProductsTFGenerator:
             self.annotation = annotation
         else:
             self.annotation = pd.read_csv(annotation)
+        np.random.seed(seed)
+        tf.random.set_seed(seed)
 
         self.label_dict = label_dict
         self.reverse_label = {value: int(key) for key, value in self.label_dict.items()}
@@ -35,6 +37,7 @@ class KProductsTFGenerator:
         self.augment_func = augment_func
         self.preprocess_func = preprocess_func
         self.dtype = dtype
+        self.seed = seed
 
     def __call__(self):
 

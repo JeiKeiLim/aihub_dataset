@@ -1,7 +1,8 @@
 import json
 import argparse
 from dataset.kproducts_dataset import KProductsDataset
-
+import numpy as np
+import random
 
 if __name__ == "__main__":
 
@@ -33,14 +34,18 @@ if __name__ == "__main__":
     parser.add_argument("--split-train-test", default=False, action='store_true', help="Splitting training and test set (Annotation only)")
     parser.add_argument("--split-balance-classes", default=False, action='store_true', help="Balancing Class Labels while splitting training and test set")
     parser.add_argument("--split-train-ratio", default=0.7, type=float, help="Splitting Training dataset ratio")
+    parser.add_argument("--seed", default=7777, type=int, help="Seed value to match random numbers")
 
     args = parser.parse_args()
+
+    np.random.seed(args.seed)
+    random.seed(args.seed)
 
     with open(args.conf, 'r') as f:
         config = json.load(f)
         config['self_path'] = args.conf
 
-    dataset = KProductsDataset(config, refresh_annot=args.refresh_annot, refresh_multi_process=args.refresh_multi_process)
+    dataset = KProductsDataset(config, refresh_annot=args.refresh_annot, refresh_multi_process=args.refresh_multi_process, seed=args.seed)
     if args.resize:
         if args.resize_num_cpus.find(".") >= 0:
             num_cpus = float(args.resize_num_cpus)
@@ -59,7 +64,7 @@ if __name__ == "__main__":
             exit(0)
 
         base_model = ClusterData.name_to_model_dict[args.vectorize_model]
-        cluster_data = ClusterData(dataset, model_input_size=(args.model_input_h, args.model_input_w), BaseModel=base_model)
+        cluster_data = ClusterData(dataset, model_input_size=(args.model_input_h, args.model_input_w), BaseModel=base_model, seed=args.seed)
 
         if args.vectorize:
             cluster_data.vectorize_dataset(multiprocess=args.vectorize_multi_process, batch_size=args.batch_size)

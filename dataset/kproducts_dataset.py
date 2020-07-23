@@ -1,5 +1,4 @@
 import json
-from util import prettyjson
 import os
 from tqdm import tqdm
 import pandas as pd
@@ -26,7 +25,7 @@ class KProductsDataset:
         "self_path"
     ]
 
-    def __init__(self, conf_or_path, refresh_annot=False, refresh_multi_process=False):
+    def __init__(self, conf_or_path, refresh_annot=False, refresh_multi_process=False, seed=7777):
         """
         Args:
             conf_or_path (dict, str): Dataset Configuration json dict or path
@@ -43,6 +42,8 @@ class KProductsDataset:
             if fix_key in self.config.keys():
                 self.config[fix_key] = os.path.abspath(self.config[fix_key])
 
+        np.random.seed(seed)
+
         self.annotations, self.unique_labels = self.read_annotations(refresh=refresh_annot, multiprocess=refresh_multi_process)
         if "label_dict" not in self.config.keys():
             self.config['label_dict'] = {str(i): label for i, label in enumerate(self.unique_labels)}
@@ -53,6 +54,7 @@ class KProductsDataset:
             f.write(prettyjson(self.config))
 
         self.n_classes = len(self.config['label_dict'])
+        self.seed = seed
 
     def split_train_test(self, train_ratio=0.7, balance_class=False):
         #TODO: Over-sample
@@ -61,13 +63,13 @@ class KProductsDataset:
             class_distribution = self.get_distribution(key=self.config['class_key'])
             min_sample = min(class_distribution.values())
 
-            annotations = [self.annotations.query("{} == '{}'".format("소분류", label)).sample(n=min_sample)
+            annotations = [self.annotations.query("{} == '{}'".format("소분류", label)).sample(n=min_sample, random_state=self.seed)
                            for label in self.unique_labels]
 
             annotations = pd.concat(annotations)
-            annotations = annotations.sample(n=annotations.shape[0]).reset_index(drop=True)
+            annotations = annotations.sample(n=annotations.shape[0], random_state=self.seed).reset_index(drop=True)
         else:
-            annotations = self.annotations.sample(n=self.annotations.shape[0]).reset_index(drop=True)
+            annotations = self.annotations.sample(n=self.annotations.shape[0], random_state=self.seed).reset_index(drop=True)
 
         n_train = int(annotations.shape[0]*train_ratio)
 

@@ -63,7 +63,7 @@ class ClusterData:
         tf.keras.applications.Xception: tf.keras.applications.xception.preprocess_input,
     }
 
-    def __init__(self, dataset, model_input_size=(224, 224), BaseModel=tf.keras.applications.ResNet152V2, preprocess_func=None):
+    def __init__(self, dataset, model_input_size=(224, 224), BaseModel=tf.keras.applications.ResNet152V2, preprocess_func=None, seed=7777):
         """
 
         Args:
@@ -72,6 +72,10 @@ class ClusterData:
             BaseModel (tf.keras.models.Model): Base model to vectorize the images.
             preprocess_func (lambda, func): Custom pre-processing function in case custom model is given in BaseModel
         """
+
+        np.random.seed(seed)
+
+        self.seed = seed
         self.dataset = dataset
         self.model_input_size = model_input_size
         self.model = BaseModel(input_shape=self.model_input_size + (3, ), weights='imagenet')
@@ -188,7 +192,6 @@ class ClusterData:
         paths = [(f"{self.dataset.config['dataset_root']}/{file_root}/feature_vector.csv",
                   f"{self.dataset.config['dataset_root']}/{file_root}/annotation.csv")
                   for file_root in unique_file_root]
-
         for path in tqdm(paths, "Clustering ..."):
             self.cluster_from_vectorization_path(path, **kwargs)
 
