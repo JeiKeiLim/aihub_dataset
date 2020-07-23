@@ -66,11 +66,17 @@ class KProductsDataset:
         ext_idx = file_name.rfind('.')
         file_name = file_name[:ext_idx] if ext_idx > 0 else file_name
 
-        train_annotation.to_csv(f"{root}/{file_name}_train.csv", index=False)
-        test_annotation.to_csv(f"{root}/{file_name}_test.csv", index=False)
+        self.config['train_annotation'] = f"{root}/{file_name}_train.csv"
+        self.config['test_annotation'] = f"{root}/{file_name}_test.csv"
 
-        print("Train Annotation({:,}) saved to {}".format(train_annotation.shape[0], f"{root}/{file_name}_train.csv"))
-        print("Test Annotation({:,}) saved to {}".format(test_annotation.shape[0], f"{root}/{file_name}_test.csv"))
+        train_annotation.to_csv(self.config['train_annotation'], index=False)
+        test_annotation.to_csv(self.config['test_annotation'], index=False)
+
+        with open(self.config['self_path'], 'w') as f:
+            f.write(prettyjson(self.config))
+
+        print("Train Annotation({:,}) saved to {}".format(train_annotation.shape[0], self.config['train_annotation']))
+        print("Test Annotation({:,}) saved to {}".format(test_annotation.shape[0], self.config['test_annotation']))
 
     def get_annotation_path_list(self, multiprocess=False):
         annot_path_list = [(root, file_name)
