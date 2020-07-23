@@ -95,7 +95,7 @@ class KProductsDataset:
 
     def get_annotation_path_list(self, multiprocess=False):
         annot_path_list = [(root, file_name)
-                           for root, dirs, files in os.walk(self.config['dataset_root'])
+                           for root, dirs, files in tqdm(os.walk(self.config['dataset_root']), desc="Searching annotation .json files ...")
                            if len(files) > 1
                            for file_name in files if file_name.endswith("json")]
         print("Annotation list: {}".format(len(annot_path_list)))
@@ -281,7 +281,7 @@ def convert_annotation(args):
         annot = annot_or_filename
     else:
         try:
-            with open(f"{root}/{annot_or_filename}") as fp:
+            with open(f"{root}/{annot_or_filename}", encoding='UTF8') as fp:
                 annot = json.load(fp)
         except json.decoder.JSONDecodeError:
             print("Something went wrong on {}/{}!!".format(root, annot_or_filename))

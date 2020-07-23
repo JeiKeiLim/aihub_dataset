@@ -41,7 +41,7 @@ if __name__ == "__main__":
     np.random.seed(args.seed)
     random.seed(args.seed)
 
-    with open(args.conf, 'r') as f:
+    with open(args.conf, 'r', encoding='UTF8') as f:
         config = json.load(f)
         config['self_path'] = args.conf
 
