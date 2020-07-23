@@ -30,6 +30,8 @@ if __name__ == "__main__":
     parser.add_argument("--reconstruct-root", default="./export", type=str, help="Reconstruct dataset root directory")
     parser.add_argument("--reconstruct-annotation-name", default="converted_annotation.csv", type=str, help="Reconstruct dataset annotation file name")
     parser.add_argument("--no-include-non-core", dest="include_non_core", default=True, action='store_false', help="Whether including non-core clustering index")
+    parser.add_argument("--split-train-test", default=False, action='store_true', help="Splitting training and test set (Annotation only)")
+    parser.add_argument("--split-balance-classes", default=False, action='store_true', help="Balancing Class Labels while splitting training and test set")
 
     args = parser.parse_args()
 
