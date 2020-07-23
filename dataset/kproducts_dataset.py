@@ -23,7 +23,7 @@ class KProductsDataset:
         "annotation_path",
         "train_annotation",
         "test_annotation",
-        "class_key"
+        "self_path"
     ]
 
     def __init__(self, conf_or_path, refresh_annot=False, refresh_multi_process=False):
