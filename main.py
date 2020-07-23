@@ -73,4 +73,3 @@ if __name__ == "__main__":
                                                          include_non_core=args.include_non_core)
     if args.split_train_test:
         dataset.split_train_test(train_ratio=args.split_train_ratio, balance_class=args.split_balance_classes)
-        
