@@ -17,6 +17,15 @@ class KProductsDataset:
     """
     Reading KProduct Dataset on AI Hub
     """
+
+    path_key_list = [
+        "dataset_root",
+        "annotation_path",
+        "train_annotation",
+        "test_annotation",
+        "class_key"
+    ]
+
     def __init__(self, conf_or_path, refresh_annot=False, refresh_multi_process=False):
         """
         Args:
@@ -29,6 +38,10 @@ class KProductsDataset:
             with open(conf_or_path, 'r') as f:
                 self.config = json.load(f)
             self.config['self_path'] = conf_or_path
+
+        for fix_key in KProductsDataset.path_key_list:
+            if fix_key in self.config.keys():
+                self.config[fix_key] = os.path.abspath(self.config[fix_key])
 
         self.annotations, self.unique_labels = self.read_annotations(refresh=refresh_annot, multiprocess=refresh_multi_process)
         if "label_dict" not in self.config.keys():
@@ -66,8 +79,8 @@ class KProductsDataset:
         ext_idx = file_name.rfind('.')
         file_name = file_name[:ext_idx] if ext_idx > 0 else file_name
 
-        self.config['train_annotation'] = f"{root}/{file_name}_train.csv"
-        self.config['test_annotation'] = f"{root}/{file_name}_test.csv"
+        self.config['train_annotation'] = os.path.abspath(f"{root}/{file_name}_train.csv")
+        self.config['test_annotation'] = os.path.abspath(f"{root}/{file_name}_test.csv")
 
         train_annotation.to_csv(self.config['train_annotation'], index=False)
         test_annotation.to_csv(self.config['test_annotation'], index=False)
