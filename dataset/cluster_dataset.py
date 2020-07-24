@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import os
 import shutil
+import platform
 
 
 class ClusterData:
@@ -116,11 +117,13 @@ class ClusterData:
 
             annotation.drop(drop_index)
 
-        save_root = f"{self.dataset.config['dataset_root']}/{annotation['file_root'].iloc[0]}"
+        seperator = "\\" if platform.system().find("Windows") >= 0 else "/"
+
+        save_root = f"{self.dataset.config['dataset_root']}{seperator}{annotation['file_root'].iloc[0]}"
         pd_feat_vector = pd.DataFrame(feature_vector)
 
-        pd_feat_vector.to_csv(f"{save_root}/feature_vector.csv", header=False, index=False)
-        annotation.to_csv(f"{save_root}/annotation.csv", index=False)
+        pd_feat_vector.to_csv(f"{save_root}{seperator}feature_vector.csv", header=False, index=False)
+        annotation.to_csv(f"{save_root}{seperator}annotation.csv", index=False)
 
         return feature_vector
 
@@ -141,11 +144,14 @@ class ClusterData:
                 self.vectorize_images(annotation, batch_size=batch_size)
 
     def reconstruct_from_cluster_result(self, target_root="./export", target_annotation_name="converted_annotation.csv", include_non_core=True):
+        seperator = "\\" if platform.system().find("Windows") >= 0 else "/"
+        target_root = target_root.replace("/", "\\") if seperator == "\\" else target_root
+
         unique_file_root = self.dataset.annotations['file_root'].unique()
-        paths = [f"{self.dataset.config['dataset_root']}/{file_root}/annotation_cluster_core.csv"
+        paths = [f"{self.dataset.config['dataset_root']}{seperator}{file_root}{seperator}annotation_cluster_core.csv"
                  for file_root in unique_file_root]
         if include_non_core:
-            paths += [f"{self.dataset.config['dataset_root']}/{file_root}/annotation_cluster_non_core.csv"
+            paths += [f"{self.dataset.config['dataset_root']}{seperator}{file_root}{seperator}annotation_cluster_non_core.csv"
                      for file_root in unique_file_root]
 
         for path in tqdm(paths, desc="Copying files and annotations ..."):
@@ -157,14 +163,17 @@ class ClusterData:
         except:
             print(f"Reading Annotation Error at {annotation_path}")
             return
-        target_annot_path = f"{target_root}/{target_annotation_name}"
+
+        seperator = "\\" if platform.system().find("Windows") >= 0 else "/"
+
+        target_annot_path = f"{target_root}{seperator}{target_annotation_name}"
 
         fail_index = []
         for i, row in annotation.iterrows():
-            src_img_path = f"{self.dataset.config['dataset_root']}/{row['file_root']}/{row['file_name']}"
-            dest_img_path = f"{target_root}/{row['file_root']}"
+            src_img_path = f"{self.dataset.config['dataset_root']}{seperator}{row['file_root']}{seperator}{row['file_name']}"
+            dest_img_path = f"{target_root}{seperator}{row['file_root']}"
             os.makedirs(dest_img_path, exist_ok=True)
-            dest_img_path += f"/{row['file_name']}"
+            dest_img_path += f"{seperator}{row['file_name']}"
             try:
                 shutil.copy2(src_img_path, dest_img_path)
             except:
@@ -180,7 +189,7 @@ class ClusterData:
             target_annotation = annotation
         target_annotation.drop_duplicates(inplace=True, ignore_index=True)
 
-        target_annotation.to_csv(f"{target_root}/{target_annotation_name}", index=False)
+        target_annotation.to_csv(f"{target_root}{seperator}{target_annotation_name}", index=False)
 
     def cluster_dataset(self, **kwargs):
         """
@@ -188,9 +197,11 @@ class ClusterData:
         Args:
             **kwargs (cluster_from_vectorization): Keyword Arguments
         """
+        seperator = "\\" if platform.system().find("Windows") >= 0 else "/"
+
         unique_file_root = self.dataset.annotations['file_root'].unique()
-        paths = [(f"{self.dataset.config['dataset_root']}/{file_root}/feature_vector.csv",
-                  f"{self.dataset.config['dataset_root']}/{file_root}/annotation.csv")
+        paths = [(f"{self.dataset.config['dataset_root']}{seperator}{file_root}{seperator}feature_vector.csv",
+                  f"{self.dataset.config['dataset_root']}{seperator}{file_root}{seperator}annotation.csv")
                   for file_root in unique_file_root]
         for path in tqdm(paths, "Clustering ..."):
             self.cluster_from_vectorization_path(path, **kwargs)
@@ -214,6 +225,8 @@ class ClusterData:
         dbscan = DBSCAN(eps=eps, n_jobs=-1).fit(feature_vector.values)
         core_samples_mask = np.zeros_like(dbscan.labels_, dtype=bool)
         core_samples_mask[dbscan.core_sample_indices_] = True
+
+        seperator = "\\" if platform.system().find("Windows") >= 0 else "/"
 
         if annotation.shape[0] != core_samples_mask.shape[0]:
             print("Something went wrong here! annotation: {:,}, feature_vector: {:,}, {:,}, core_samples_mask: {:,}".format(annotation.shape[0], feature_vector.shape[0], feature_vector.values.shape[0], core_samples_mask.shape[0]))
@@ -268,7 +281,7 @@ class ClusterData:
                 else:
                     resize_size = plot_img_size
 
-                img_path = f"{self.dataset.config['dataset_root']}/{annotation.iloc[i]['file_root']}/{annotation.iloc[i]['file_name']}"
+                img_path = f"{self.dataset.config['dataset_root']}{seperator}{annotation.iloc[i]['file_root']}{seperator}{annotation.iloc[i]['file_name']}"
                 img = Image.open(img_path)
                 img = img.resize(resize_size)
 
@@ -281,7 +294,7 @@ class ClusterData:
                 canvas[y1:y2, x1:x2, :] = np.array(img, np.uint8)[:(y2 - y1), :(x2 - x1), :]
 
             if save_plot != "":
-                path = f"{self.dataset.config['dataset_root']}/{annotation.iloc[i]['file_root']}/cluster_result.jpg"
+                path = f"{self.dataset.config['dataset_root']}{seperator}{annotation.iloc[i]['file_root']}{seperator}cluster_result.jpg"
                 Image.fromarray(canvas).save(path)
             if plot:
                 plt.imshow(canvas)

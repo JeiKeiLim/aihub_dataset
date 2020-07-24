@@ -1,5 +1,7 @@
 import json
 import os
+from sys import platform
+
 from tqdm import tqdm
 import pandas as pd
 from PIL import Image
@@ -10,6 +12,7 @@ from p_tqdm import p_umap, p_map
 from functools import partial
 import shutil
 from util import prettyjson
+import platform
 
 
 class KProductsDataset:
@@ -25,22 +28,28 @@ class KProductsDataset:
         "self_path"
     ]
 
-    def __init__(self, conf_or_path, refresh_annot=False, refresh_multi_process=False, seed=7777):
+    def __init__(self, conf_or_path, refresh_annot=False, refresh_multi_process=False, seed=7777, encoding='UTF8'):
         """
         Args:
             conf_or_path (dict, str): Dataset Configuration json dict or path
             refresh_annot (bool): Refresh Converted Annotation File
+            encoding (str): Config Encoding type
         """
+        self.encoding = encoding
+
         if type(conf_or_path) == dict:
             self.config = conf_or_path
         else:
-            with open(conf_or_path, 'r') as f:
+            with open(conf_or_path, 'r', encoding=self.encoding) as f:
                 self.config = json.load(f)
             self.config['self_path'] = conf_or_path
 
         for fix_key in KProductsDataset.path_key_list:
             if fix_key in self.config.keys():
                 self.config[fix_key] = os.path.abspath(self.config[fix_key])
+
+                if platform.system().find("Windows") >= 0:
+                    self.config[fix_key] = self.config[fix_key].replace("\\", "\\\\")
 
         np.random.seed(seed)
 
@@ -50,7 +59,7 @@ class KProductsDataset:
         else:
             self.config['label_dict'] = {i: label for i, label in self.config['label_dict'].items()}
 
-        with open(self.config['self_path'], 'w') as f:
+        with open(self.config['self_path'], 'w', encoding=self.encoding) as f:
             f.write(prettyjson(self.config))
 
         self.n_classes = len(self.config['label_dict'])
@@ -76,18 +85,20 @@ class KProductsDataset:
         train_annotation = annotations.iloc[:n_train]
         test_annotation = annotations.iloc[n_train:]
 
-        root = self.config['annotation_path'].split("/")
-        root, file_name = "/".join(root[:-1]), root[-1]
+        seperator = "\\" if platform.system().find("Windows") >= 0 else "/"
+
+        root = self.config['annotation_path'].split(seperator)
+        root, file_name = seperator.join(root[:-1]), root[-1]
         ext_idx = file_name.rfind('.')
         file_name = file_name[:ext_idx] if ext_idx > 0 else file_name
 
-        self.config['train_annotation'] = os.path.abspath(f"{root}/{file_name}_train.csv")
-        self.config['test_annotation'] = os.path.abspath(f"{root}/{file_name}_test.csv")
+        self.config['train_annotation'] = os.path.abspath(f"{root}{seperator}{file_name}_train.csv")
+        self.config['test_annotation'] = os.path.abspath(f"{root}{seperator}{file_name}_test.csv")
 
         train_annotation.to_csv(self.config['train_annotation'], index=False)
         test_annotation.to_csv(self.config['test_annotation'], index=False)
 
-        with open(self.config['self_path'], 'w') as f:
+        with open(self.config['self_path'], 'w', self.encoding) as f:
             f.write(prettyjson(self.config))
 
         print("Train Annotation({:,}) saved to {}".format(train_annotation.shape[0], self.config['train_annotation']))
@@ -99,16 +110,20 @@ class KProductsDataset:
                            if len(files) > 1
                            for file_name in files if file_name.endswith("json")]
         print("Annotation list: {}".format(len(annot_path_list)))
-        file_checker = lambda x: x if os.path.isfile(f"{x[0]}/{x[1]}") and \
-                                      (os.path.isfile(f"{x[0]}/{x[1][:-5]}.JPG") or os.path.isfile(f"{x[0]}/{x[1][:-5]}.jpg")) else None
+
+        seperator = "\\" if platform.system().find("Windows") >= 0 else "/"
+
+        file_checker = lambda x: x if os.path.isfile(f"{x[0]}{seperator}{x[1]}") and \
+                                      (os.path.isfile(f"{x[0]}{seperator}{x[1][:-5]}.JPG") or
+                                       os.path.isfile(f"{x[0]}{seperator}{x[1][:-5]}.jpg")) else None
         if multiprocess:
             annot_path_list = p_map(file_checker, annot_path_list, desc="Double-Check File List ...")
             annot_path_list = [x for x in annot_path_list if x is not None]
         else:
             annot_path_list = [(root, file_name) for root, file_name in tqdm(annot_path_list, desc="Double-Check File List ...")
-                               if os.path.isfile(f"{root}/{file_name}") and
-                               (os.path.isfile(f"{root}/{file_name[:-5]}.JPG") or
-                                os.path.isfile(f"{root}/{file_name[:-5]}.jpg"))
+                               if os.path.isfile(f"{root}{seperator}{file_name}") and
+                               (os.path.isfile(f"{root}{seperator}{file_name[:-5]}.JPG") or
+                                os.path.isfile(f"{root}{seperator}{file_name[:-5]}.jpg"))
                                ]
 
         print("Annotation list: {}".format(len(annot_path_list)))
@@ -158,12 +173,15 @@ class KProductsDataset:
         """
         dataset_root, file_root, file_name = args
 
-        target_file_root = f"{target_root}/{file_root}"
+        seperator = "\\" if platform.system().find("Windows") >= 0 else "/"
+        target_root = target_root.replace("/", "\\") if seperator == "\\" else target_root
+
+        target_file_root = f"{target_root}{seperator}{file_root}"
         os.makedirs(target_file_root, exist_ok=True)
-        target_path = f"{target_file_root}/{file_name}"
+        target_path = f"{target_file_root}{seperator}{file_name}"
 
         if copy_annotation:
-            annot_path = f"{dataset_root}/{file_root}/{file_name[:-4]}.json"
+            annot_path = f"{dataset_root}{seperator}{file_root}{seperator}{file_name[:-4]}.json"
             target_annot_path = f"{target_path[:-4]}.json"
             try:
                 shutil.copy2(annot_path, target_annot_path)
@@ -173,7 +191,7 @@ class KProductsDataset:
         if skip_exists and os.path.isfile(target_path):
             return
 
-        img_path = f"{dataset_root}/{file_root}/{file_name}"
+        img_path = f"{dataset_root}{seperator}{file_root}{seperator}{file_name}"
         try:
             img = Image.open(img_path)
             target_h = int((target_w / img.size[0]) * img.size[1])
@@ -194,6 +212,9 @@ class KProductsDataset:
             multiprocess (bool): Use multi process.
             num_cpus (int, float): Number(int) or proportion(float) of cpus to utilize in multiprocess.
         """
+
+        target_root = target_root.replace("/", "\\") if platform.system().find("Windows") >= 0 else target_root
+
         mp_args = self.annotations[['file_root', 'file_name']].values.tolist()
         mp_args = [[self.config['dataset_root']] + arg for arg in mp_args]
 
@@ -228,9 +249,11 @@ class KProductsDataset:
             (PIL.Image): Image
             (pd.DataFrame): Annotation
         """
+        seperator = "\\" if platform.system().find("Windows") >= 0 else "/"
+
         target = self.annotations.iloc[idx]
 
-        img_path = f"{self.config['dataset_root']}/{target['file_root']}/{target['file_name']}"
+        img_path = f"{self.config['dataset_root']}{seperator}{target['file_root']}{seperator}{target['file_name']}"
         try:
             img = Image.open(img_path)
         except:
@@ -247,7 +270,9 @@ class KProductsDataset:
         subplot_w = np.ceil(np.sqrt(n_label)).astype(np.int32)
         subplot_h = subplot_w-1 if subplot_w*(subplot_w-1) > n_label else subplot_w
 
-        fontprop = fm.FontProperties(fname="./res/NanumSquareRoundR.ttf")
+        seperator = "\\" if platform.system().find("Windows") >= 0 else "/"
+
+        fontprop = fm.FontProperties(fname=f".{seperator}res{seperator}NanumSquareRoundR.ttf")
 
         plt.figure(figsize=(15, 15))
         for i, label in enumerate(self.unique_labels):
@@ -263,7 +288,7 @@ class KProductsDataset:
         plt.show()
 
 
-def convert_annotation(args):
+def convert_annotation(args, encoding='UTF8'):
     """
     Convert Original annotation json file to python dict type
 
@@ -271,27 +296,30 @@ def convert_annotation(args):
         args (list, tuple): Contains two arguments. (root, annot_or_filename)
             root (str): Dataset root directory
             annot_or_filename (dict, str): Annotation dict or path
+        encoding (str): Annotation Encoding Type
     Returns:
         (dict): Converted annotation dict type
 
     """
     root, annot_or_filename = args
 
+    seperator = "\\" if platform.system().find("Windows") >= 0 else "/"
+
     if type(annot_or_filename) == dict:
         annot = annot_or_filename
     else:
         try:
-            with open(f"{root}/{annot_or_filename}", encoding='UTF8') as fp:
+            with open(f"{root}{seperator}{annot_or_filename}", encoding=encoding) as fp:
                 annot = json.load(fp)
         except json.decoder.JSONDecodeError:
             print("Something went wrong on {}/{}!!".format(root, annot_or_filename))
             return None
 
     if len(annot['regions']) > 1:
-        print(f"!!! More than Two Annotation Found ({len(annot['regions']):02d}) at {root}/{annot['image']['identifier']}")
+        print(f"!!! More than Two Annotation Found ({len(annot['regions']):02d}) at {root}{seperator}{annot['image']['identifier']}")
 
-    roots = root.split("/")
-    file_root = "/".join(roots[-2:])
+    roots = root.split(seperator)
+    file_root = seperator.join(roots[-2:])
     new_annot = dict()
     new_annot['file_name'] = annot['image']['identifier']
     new_annot['file_root'] = file_root

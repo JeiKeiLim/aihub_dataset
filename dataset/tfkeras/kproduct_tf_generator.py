@@ -3,6 +3,7 @@ import pandas as pd
 from PIL import Image
 import numpy as np
 from dataset.tfkeras import preprocessing
+import platform
 
 
 class KProductsTFGenerator:
@@ -40,6 +41,7 @@ class KProductsTFGenerator:
         self.seed = seed
 
     def __call__(self):
+        seperator = "\\" if platform.system().find("Windows") >= 0 else "/"
 
         if self.shuffle:
             annotation = self.annotation.sample(n=self.annotation.shape[0]).reset_index(drop=True)
@@ -48,7 +50,7 @@ class KProductsTFGenerator:
 
         for i in range(annotation.shape[0]):
             annot = annotation.iloc[i]
-            img_path = f"{self.dataset_root}/{annot['file_root']}/{annot['file_name']}"
+            img_path = f"{self.dataset_root}{seperator}{annot['file_root']}{seperator}{annot['file_name']}"
 
             label = self.reverse_label[annot[self.class_key]]
 
