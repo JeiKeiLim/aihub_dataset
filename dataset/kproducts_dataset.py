@@ -98,7 +98,7 @@ class KProductsDataset:
         train_annotation.to_csv(self.config['train_annotation'], index=False)
         test_annotation.to_csv(self.config['test_annotation'], index=False)
 
-        with open(self.config['self_path'], 'w', self.encoding) as f:
+        with open(self.config['self_path'], 'w', encoding=self.encoding) as f:
             f.write(prettyjson(self.config))
 
         print("Train Annotation({:,}) saved to {}".format(train_annotation.shape[0], self.config['train_annotation']))
