@@ -28,7 +28,8 @@ class KProductsDataset:
         "self_path"
     ]
 
-    def __init__(self, conf_or_path, refresh_annot=False, refresh_multi_process=False, seed=7777, encoding='UTF8'):
+    def __init__(self, conf_or_path, refresh_annot=False,
+                 refresh_multi_process=False, seed=7777, encoding='UTF8', skip_save_config=False):
         """
         Args:
             conf_or_path (dict, str): Dataset Configuration json dict or path
@@ -59,8 +60,9 @@ class KProductsDataset:
         else:
             self.config['label_dict'] = {i: label for i, label in self.config['label_dict'].items()}
 
-        with open(self.config['self_path'], 'w', encoding=self.encoding) as f:
-            f.write(prettyjson(self.config))
+        if not skip_save_config:
+            with open(self.config['self_path'], 'w', encoding=self.encoding) as f:
+                f.write(prettyjson(self.config))
 
         self.n_classes = len(self.config['label_dict'])
         self.seed = seed
@@ -271,7 +273,7 @@ class KProductsDataset:
 
         return img, target
 
-    def plot_class_images(self, figsize=(30, 30)):
+    def plot_all_class_images(self, title="", figsize=(30, 30)):
         """
         Plot Every class images by randomly choosing within the class
         """
@@ -280,7 +282,8 @@ class KProductsDataset:
         subplot_h = subplot_w-1 if subplot_w*(subplot_w-1) > n_label else subplot_w
 
         plt.figure(figsize=figsize)
-        for i, label in enumerate(self.unique_labels):
+        for i, label in self.config['label_dict'].items():
+            i = int(i)
             class_index = self.annotations.query("{} == '{}'".format(self.config['class_key'], label)).index.values
             np.random.shuffle(class_index)
             img, annot = self.get_data(class_index[0])
@@ -289,10 +292,40 @@ class KProductsDataset:
             plt.imshow(img)
             plt.title(f"{i:02d}: {label} :: {annot['file_name']}")
             plt.axis('off')
+
+        plt.suptitle(title)
         plt.tight_layout()
         plt.show()
 
-    def plot_class_distributions(self, figsize=(12, 8)):
+    def plot_class_images(self, class_key_id, title="", n_plot=8, figsize=(30, 30)):
+        subplot_w = np.ceil(np.sqrt(n_plot)).astype(np.int32)
+        subplot_h = subplot_w - 1 if subplot_w * (subplot_w - 1) > n_plot else subplot_w
+        plt.figure(figsize=figsize)
+
+        reverse_label = {value: int(key) for key, value in self.config['label_dict']}
+
+        class_name = self.config['label_dict'][str(class_key_id)] if type(class_key_id) == int else class_key_id
+        class_id = reverse_label[class_name]
+
+
+        class_index= self.annotations.query("{} == '{}'".format(
+            self.config['class_key'], class_name
+        )).index.values
+        np.random.shuffle(class_index)
+
+        for i in range(n_plot):
+            img, annot = self.get_data(class_index[i])
+
+            plt.subplot(subplot_w, subplot_h, i+1)
+            plt.imshow(img)
+            plt.title(f"{i:02d} - {class_id:02d}:{class_name} :: {annot['file_name']}")
+            plt.axis('off')
+
+        plt.suptitle("title")
+        plt.tight_layout()
+        plt.show()
+
+    def plot_class_distributions(self, title_prefix="", figsize=(12, 8)):
         """
         Plot class data number distribution
         """
@@ -310,7 +343,7 @@ class KProductsDataset:
         for i, v in enumerate(dists):
             ax.text(v+0.05, i-.25, f"{v:,}", color='k', fontweight='bold')
 
-        ax.set_title("Class Distribution")
+        ax.set_title(f"{title_prefix}Class Distribution")
         fig.tight_layout()
         plt.show()
 

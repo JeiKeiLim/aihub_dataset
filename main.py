@@ -3,6 +3,7 @@ import argparse
 from dataset.kproducts_dataset import KProductsDataset
 import numpy as np
 import random
+import copy
 
 if __name__ == "__main__":
 
@@ -35,6 +36,12 @@ if __name__ == "__main__":
     parser.add_argument("--split-balance-classes", default=False, action='store_true', help="Balancing Class Labels while splitting training and test set")
     parser.add_argument("--split-train-ratio", default=0.7, type=float, help="Splitting Training dataset ratio")
     parser.add_argument("--seed", default=7777, type=int, help="Seed value to match random numbers")
+    parser.add_argument("--plot-distribution", default=False, action='store_true', help="Plot Class Distribution Image")
+    parser.add_argument("--plot-all-class-images", default=False, action='store_true', help="Plot Every Class Images")
+    parser.add_argument("--plot-class-images", default=False, action='store_true', help="Plot Images of (plot-class-id) only")
+    parser.add_argument("--plot-class-id", default=0, type=int, help="Class id number to plot")
+    parser.add_argument("--plot-n", default=8, type=int, help="Plot number for (plot-class-images)")
+    parser.add_argument("--plot-data-type", default="all", type=str, help="Plot Data Type. (all, train, test)")
 
     args = parser.parse_args()
 
@@ -78,3 +85,22 @@ if __name__ == "__main__":
                                                          include_non_core=args.include_non_core)
     if args.split_train_test:
         dataset.split_train_test(train_ratio=args.split_train_ratio, balance_class=args.split_balance_classes)
+
+    if args.plot_distribution or args.plot_class_images:
+        if args.plot_data_type == "train" or args.plot_data_type == "test":
+            new_config = copy.copy(config)
+            annot_key = f"{args.plot_data_type}_annotation"
+            new_config['annotation_path'] = new_config[annot_key]
+            new_dataset = KProductsDataset(new_config, seed=args.seed, skip_save_config=True)
+        else:
+            new_dataset = dataset
+
+        if args.plot_distribution:
+            new_dataset.plot_class_distributions(title_prefix=f"{args.plot_data_type} ")
+
+        if args.plot_all_class_images:
+            new_dataset.plot_all_class_images(title=f"{args.plot_data_type} data images")
+
+        if args.plot_class_images:
+            new_dataset.plot_class_images(args.plot_class_id, n_plot=args.plot_n, title=f"{args.plot_data_type} data images")
+
