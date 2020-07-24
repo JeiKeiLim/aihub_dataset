@@ -104,7 +104,7 @@ class KProductsDataset:
         print("Train Annotation({:,}) saved to {}".format(train_annotation.shape[0], self.config['train_annotation']))
         print("Test Annotation({:,}) saved to {}".format(test_annotation.shape[0], self.config['test_annotation']))
 
-    def get_annotation_path_list(self, multiprocess=False):
+    def get_annotation_path_list(self, multiprocess=False, sort=True):
         annot_path_list = [(root, file_name)
                            for root, dirs, files in tqdm(os.walk(self.config['dataset_root']), desc="Searching annotation .json files ...")
                            if len(files) > 1
@@ -126,6 +126,8 @@ class KProductsDataset:
                                 os.path.isfile(f"{root}{seperator}{file_name[:-5]}.jpg"))
                                ]
 
+        if sort:
+            annot_path_list.sort()
         print("Annotation list: {}".format(len(annot_path_list)))
         return annot_path_list
 
