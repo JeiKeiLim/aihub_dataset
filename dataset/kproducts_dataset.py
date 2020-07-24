@@ -302,13 +302,12 @@ class KProductsDataset:
         subplot_h = subplot_w - 1 if subplot_w * (subplot_w - 1) > n_plot else subplot_w
         plt.figure(figsize=figsize)
 
-        reverse_label = {value: int(key) for key, value in self.config['label_dict']}
+        reverse_label = {value: int(key) for key, value in self.config['label_dict'].items()}
 
         class_name = self.config['label_dict'][str(class_key_id)] if type(class_key_id) == int else class_key_id
         class_id = reverse_label[class_name]
 
-
-        class_index= self.annotations.query("{} == '{}'".format(
+        class_index = self.annotations.query("{} == '{}'".format(
             self.config['class_key'], class_name
         )).index.values
         np.random.shuffle(class_index)
@@ -321,7 +320,7 @@ class KProductsDataset:
             plt.title(f"{i:02d} - {class_id:02d}:{class_name} :: {annot['file_name']}")
             plt.axis('off')
 
-        plt.suptitle("title")
+        plt.suptitle(title)
         plt.tight_layout()
         plt.show()
 
