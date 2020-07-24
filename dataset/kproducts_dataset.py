@@ -273,7 +273,7 @@ class KProductsDataset:
 
         return img, target
 
-    def plot_all_class_images(self, title="", figsize=(30, 30)):
+    def plot_all_class_images(self, title="", figsize=(30, 30), save_path=""):
         """
         Plot Every class images by randomly choosing within the class
         """
@@ -295,36 +295,54 @@ class KProductsDataset:
 
         plt.suptitle(title)
         plt.tight_layout()
-        plt.show()
 
-    def plot_class_images(self, class_key_id, title="", n_plot=8, figsize=(30, 30)):
-        subplot_w = np.ceil(np.sqrt(n_plot)).astype(np.int32)
-        subplot_h = subplot_w - 1 if subplot_w * (subplot_w - 1) > n_plot else subplot_w
-        plt.figure(figsize=figsize)
+        if save_path == "":
+            plt.show()
+        else:
+            plt.savefig(save_path)
+            plt.close()
+
+    def plot_class_images(self, class_key_id, title="", figsize=(30, 30), save_path=""):
 
         reverse_label = {value: int(key) for key, value in self.config['label_dict'].items()}
 
         class_name = self.config['label_dict'][str(class_key_id)] if type(class_key_id) == int else class_key_id
         class_id = reverse_label[class_name]
 
-        class_index = self.annotations.query("{} == '{}'".format(
+        class_annot = self.annotations.query("{} == '{}'".format(
             self.config['class_key'], class_name
-        )).index.values
-        np.random.shuffle(class_index)
+        ))
 
-        for i in range(n_plot):
-            img, annot = self.get_data(class_index[i])
+        unique_obj_id = class_annot['종ID'].unique()
+
+        class_annot_by_obj_id = [class_annot.query("종ID == '{}'".format(unique_obj_id[i])) for i in range(len(unique_obj_id))]
+        class_index_by_obj_id = [annot.index.values for annot in class_annot_by_obj_id]
+
+        n_plot = len(class_annot_by_obj_id)
+
+        subplot_w = np.ceil(np.sqrt(n_plot)).astype(np.int32)
+        subplot_h = subplot_w - 1 if subplot_w * (subplot_w - 1) > n_plot else subplot_w
+        plt.figure(figsize=figsize)
+
+        for i, obj_index in enumerate(class_index_by_obj_id):
+            np.random.shuffle(obj_index)
+
+            img, annot = self.get_data(obj_index[0])
 
             plt.subplot(subplot_w, subplot_h, i+1)
             plt.imshow(img)
-            plt.title(f"{i:02d} - {class_id:02d}:{class_name} :: {annot['file_name']}")
+            plt.title(f"{i:02d} - {class_id:02d}:{class_name} :: {annot['file_root'].split('/')[0]}/{annot['file_name']} - {len(obj_index):,}")
             plt.axis('off')
 
         plt.suptitle(title)
         plt.tight_layout()
-        plt.show()
 
-    def plot_class_distributions(self, title_prefix="", figsize=(12, 8)):
+        if save_path == "":
+            plt.show()
+        else:
+            plt.savefig(save_path)
+
+    def plot_class_distributions(self, title_prefix="", figsize=(12, 8), save_path=""):
         """
         Plot class data number distribution
         """
@@ -344,7 +362,12 @@ class KProductsDataset:
 
         ax.set_title(f"{title_prefix}Class Distribution")
         fig.tight_layout()
-        plt.show()
+
+        if save_path == "":
+            plt.show()
+        else:
+            fig.savefig(save_path)
+            plt.close(fig)
 
 
 def convert_annotation(args, encoding='UTF8'):

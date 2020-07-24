@@ -42,6 +42,7 @@ if __name__ == "__main__":
     parser.add_argument("--plot-class-id", default=0, type=int, help="Class id number to plot")
     parser.add_argument("--plot-n", default=8, type=int, help="Plot number for (plot-class-images)")
     parser.add_argument("--plot-data-type", default="all", type=str, help="Plot Data Type. (all, train, test)")
+    parser.add_argument("--plot-save-path", default="", type=str, help="Plot save path. If the path is given, plot will not be shown.")
 
     args = parser.parse_args()
 
@@ -96,11 +97,11 @@ if __name__ == "__main__":
             new_dataset = dataset
 
         if args.plot_distribution:
-            new_dataset.plot_class_distributions(title_prefix=f"{args.plot_data_type} ")
+            new_dataset.plot_class_distributions(title_prefix=f"{args.plot_data_type} ", save_path=args.plot_save_path)
 
         if args.plot_all_class_images:
-            new_dataset.plot_all_class_images(title=f"{args.plot_data_type} data images")
+            new_dataset.plot_all_class_images(title=f"{args.plot_data_type} data images", save_path=args.plot_save_path)
 
         if args.plot_class_images:
-            new_dataset.plot_class_images(args.plot_class_id, n_plot=args.plot_n, title=f"{args.plot_data_type} data images")
+            new_dataset.plot_class_images(args.plot_class_id, title=f"{args.plot_data_type} data images", save_path=args.plot_save_path)
 
