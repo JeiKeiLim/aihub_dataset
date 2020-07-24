@@ -55,6 +55,11 @@ python main.py --reconstruct --reconstruct-root /reconstruct/dataset/root
 python main.py --vectorize --vectorize-model resnet152v2 --batch-size 32 --cluster --eps 0.1 --reconstruct --reconstruct-root /reconstruct/dataset/root
 ```
 
+### 4. Split training and test set
+```
+python main.py --split-train-tes
+```
+
 # USAGE
 ```
 usage: main.py [-h] [--conf CONF] [--resize] [--resize-no-copy-annotation]
@@ -68,7 +73,9 @@ usage: main.py [-h] [--conf CONF] [--resize] [--resize-no-copy-annotation]
                [--cluster] [--eps EPS] [--show-cluster-plot] [--save-plot]
                [--reconstruct] [--reconstruct-root RECONSTRUCT_ROOT]
                [--reconstruct-annotation-name RECONSTRUCT_ANNOTATION_NAME]
-               [--no-include-non-core]
+               [--no-include-non-core] [--split-train-test]
+               [--split-balance-classes]
+               [--split-train-ratio SPLIT_TRAIN_RATIO] [--seed SEED]
 optional arguments:
   -h, --help            show this help message and exit
   --conf CONF           Configuration file path. (default: ./conf.json)
@@ -122,6 +129,15 @@ optional arguments:
   --no-include-non-core
                         Whether including non-core clustering index (default:
                         True)
+  --split-train-test    Splitting training and test set (Annotation only)
+                        (default: False)
+  --split-balance-classes
+                        Balancing Class Labels while splitting training and
+                        test set (default: False)
+  --split-train-ratio SPLIT_TRAIN_RATIO
+                        Splitting Training dataset ratio (default: 0.7)
+  --seed SEED           Seed value to match random numbers (default: 7777)
+Process finished with exit code 0
 
 ```
 
