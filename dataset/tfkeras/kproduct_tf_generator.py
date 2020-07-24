@@ -7,7 +7,7 @@ import platform
 
 
 class KProductsTFGenerator:
-    def __init__(self, annotation, label_dict, dataset_root, shuffle=False, class_key='소분류', image_size=(224, 224),
+    def __init__(self, annotation, label_dict, dataset_root, shuffle=False, class_key='class_name', image_size=(224, 224),
                  augment_func=None, augment_in_dtype="numpy", preprocess_func=preprocessing.preprocess_default,
                  dtype=np.float32, seed=7777):
         """
