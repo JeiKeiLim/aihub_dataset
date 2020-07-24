@@ -8,7 +8,8 @@ import platform
 
 class KProductsTFGenerator:
     def __init__(self, annotation, label_dict, dataset_root, shuffle=False, class_key='소분류', image_size=(224, 224),
-                 augment_func=None, preprocess_func=preprocessing.preprocess_default, dtype=np.float32, seed=7777):
+                 augment_func=None, augment_in_dtype="numpy", preprocess_func=preprocessing.preprocess_default,
+                 dtype=np.float32, seed=7777):
         """
 
         Args:
@@ -19,9 +20,12 @@ class KProductsTFGenerator:
             class_key (str): Class Key Name. ('소분류', '중분류')
             image_size (tuple): (Height, Width)
             augment_func (function, None): Augmentation Function that takes one input of NumPy Array (height, width, channel)
+            augment_in_dtype (str): Augmentation Function Input Data Type. Possible value: ('numpy', 'pil')
             preprocess_func (dataset.tfkeras.preprocessing function): Pre Processing function that takes one input of PIL.Image or Numpy Array
             dtype:
         """
+        assert augment_in_dtype in ['numpy', 'pil']
+
         if type(annotation) == pd.DataFrame:
             self.annotation = annotation
         else:
@@ -39,6 +43,7 @@ class KProductsTFGenerator:
         self.preprocess_func = preprocess_func
         self.dtype = dtype
         self.seed = seed
+        self.augment_in_dtype = augment_in_dtype
 
     def __call__(self):
         seperator = "\\" if platform.system().find("Windows") >= 0 else "/"
@@ -55,7 +60,9 @@ class KProductsTFGenerator:
             label = self.reverse_label[annot[self.class_key]]
 
             try:
-                img = np.array(Image.open(img_path), dtype=np.uint8)
+                img = Image.open(img_path)
+                if self.augment_in_dtype != 'pil' and self.augment_func is not None:
+                    img = np.array(img, dtype=np.uint8)
             except:
                 print("Error Opening Image File at {}".format(img_path))
                 continue
@@ -63,7 +70,10 @@ class KProductsTFGenerator:
             if self.augment_func is not None:
                 img = self.augment_func(img)
 
-            img = Image.fromarray(img).resize((self.image_size[1], self.image_size[0]))
+                if self.augment_in_dtype != 'pil':
+                    img = Image.fromarray(img)
+
+            img = img.resize((self.image_size[1], self.image_size[0]))
             img = self.preprocess_func(img, dtype=self.dtype)
 
             yield img, label
