@@ -65,6 +65,13 @@ class KProductsDataset:
         self.n_classes = len(self.config['label_dict'])
         self.seed = seed
 
+        # For Korean Label
+        font_list = [font.name for font in fm.fontManager.ttflist]
+        possible_fonts = [font_name for font_name in font_list if font_name.find("CJK") >=0]
+        if len(possible_fonts) > 0:
+            plt.rcParams['axes.unicode_minus'] = False
+            plt.rcParams['font.family'] = possible_fonts[0]
+
     def split_train_test(self, train_ratio=0.7, balance_class=False):
         #TODO: Over-sample
 
@@ -72,7 +79,7 @@ class KProductsDataset:
             class_distribution = self.get_distribution(key=self.config['class_key'])
             min_sample = min(class_distribution.values())
 
-            annotations = [self.annotations.query("{} == '{}'".format("소분류", label)).sample(n=min_sample, random_state=self.seed)
+            annotations = [self.annotations.query("{} == '{}'".format(self.config['class_key'], label)).sample(n=min_sample, random_state=self.seed)
                            for label in self.unique_labels]
 
             annotations = pd.concat(annotations)
@@ -227,7 +234,7 @@ class KProductsDataset:
             for arg in tqdm(mp_args, desc="Resizing Images ..."):
                 KProductsDataset.resize_image(arg, target_w=target_w, target_root=target_root, skip_exists=skip_exists, copy_annotation=copy_annotation)
 
-    def get_distribution(self, key='소분류'):
+    def get_distribution(self, key='class'):
         """
         Get distributions of dataset by key
         Args:
@@ -264,7 +271,7 @@ class KProductsDataset:
 
         return img, target
 
-    def plot_class_images(self):
+    def plot_class_images(self, figsize=(30, 30)):
         """
         Plot Every class images by randomly choosing within the class
         """
@@ -272,11 +279,7 @@ class KProductsDataset:
         subplot_w = np.ceil(np.sqrt(n_label)).astype(np.int32)
         subplot_h = subplot_w-1 if subplot_w*(subplot_w-1) > n_label else subplot_w
 
-        seperator = "\\" if platform.system().find("Windows") >= 0 else "/"
-
-        fontprop = fm.FontProperties(fname=f".{seperator}res{seperator}NanumSquareRoundR.ttf")
-
-        plt.figure(figsize=(15, 15))
+        plt.figure(figsize=figsize)
         for i, label in enumerate(self.unique_labels):
             class_index = self.annotations.query("{} == '{}'".format(self.config['class_key'], label)).index.values
             np.random.shuffle(class_index)
@@ -284,9 +287,31 @@ class KProductsDataset:
 
             plt.subplot(subplot_w, subplot_h, i+1)
             plt.imshow(img)
-            plt.title(f"{label} :: {annot['file_name']}", fontproperties=fontprop)
+            plt.title(f"{i:02d}: {label} :: {annot['file_name']}")
             plt.axis('off')
         plt.tight_layout()
+        plt.show()
+
+    def plot_class_distributions(self, figsize=(12, 8)):
+        """
+        Plot class data number distribution
+        """
+
+        n_label = len(self.unique_labels)
+
+        dists = [self.annotations.query("{} == '{}'".format(self.config['class_key'], self.config['label_dict'][str(i)])).shape[0]
+                 for i in range(n_label)]
+        class_names = list(self.config['label_dict'].values())
+        class_names = [f"{i:02d}: {name}" for i, name in enumerate(class_names)]
+
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.barh(class_names, dists)
+
+        for i, v in enumerate(dists):
+            ax.text(v+0.05, i-.25, f"{v:,}", color='k', fontweight='bold')
+
+        ax.set_title("Class Distribution")
+        fig.tight_layout()
         plt.show()
 
 
@@ -333,7 +358,7 @@ def convert_annotation(args, encoding='UTF8'):
     new_annot['bbox_y1'] = region_annot['boxcorners'][1]
     new_annot['bbox_x2'] = region_annot['boxcorners'][2]
     new_annot['bbox_y2'] = region_annot['boxcorners'][3]
-    new_annot['obj_name'] = region_annot['class']
+    new_annot['class_name'] = region_annot['class']
 
     for tag in region_annot['tags']:
         tag_name, tag_value = tag.split(":")
