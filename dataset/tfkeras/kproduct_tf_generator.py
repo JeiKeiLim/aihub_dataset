@@ -13,7 +13,7 @@ from functools import partial
 class KProductsTFGenerator:
     def __init__(self, annotation, label_dict, dataset_root, shuffle=False, class_key='class_name', image_size=(224, 224),
                  augment_func=None, augment_in_dtype="numpy", preprocess_func=preprocessing.preprocess_default,
-                 dtype=np.float32, seed=7777, load_all=False, load_all_image_size=(96, 128), load_all_multiprocess=True):
+                 dtype=np.float32, seed=7777, load_all=False, load_all_image_size=(192, 256), load_all_multiprocess=True):
         """
 
         Args:
@@ -111,7 +111,7 @@ class KProductsTFGenerator:
 
     def apply_augment(self, img):
         if self.augment_func is not None:
-            if type(img) == PIL.JpegImagePlugin.JpegImageFile and self.augment_in_dtype == 'numpy':
+            if type(img) != np.ndarray and self.augment_in_dtype == 'numpy':
                 img = np.array(img, dtype=np.uint8)
             if type(img) == np.ndarray and self.augment_in_dtype == 'pil':
                 img = Image.fromarray(img)
