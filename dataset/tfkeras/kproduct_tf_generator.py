@@ -11,7 +11,7 @@ from tqdm import tqdm
 class KProductsTFGenerator:
     def __init__(self, annotation, label_dict, dataset_root, shuffle=False, class_key='class_name', image_size=(224, 224),
                  augment_func=None, augment_in_dtype="numpy", preprocess_func=preprocessing.preprocess_default,
-                 dtype=np.float32, seed=7777, load_all=False, load_all_image_size=(128, 96)):
+                 dtype=np.float32, seed=7777, load_all=False, load_all_image_size=(96, 128)):
         """
 
         Args:
@@ -27,7 +27,7 @@ class KProductsTFGenerator:
             dtype (np.dtype): Data type for target model.
             seed (int): Random seed.
             load_all (bool): Load all images into memory. It reuiqres large memory size.
-            load_all_image_size (tuple): Target resizing image size when load all. (width, height)
+            load_all_image_size (tuple): Target resizing image size when load all. (height, width)
         """
         assert augment_in_dtype in ['numpy', 'pil']
 
@@ -72,7 +72,7 @@ class KProductsTFGenerator:
 
             try:
                 img = Image.open(img_path)
-                img = img.resize(self.load_all_image_size)
+                img = img.resize((self.load_all_image_size[1], self.load_all_image_size[0]))
                 images[i] = np.array(img, dtype=np.uint8)
                 labels[i] = label
             except:
