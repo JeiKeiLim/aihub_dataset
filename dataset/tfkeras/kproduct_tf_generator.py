@@ -5,6 +5,7 @@ import numpy as np
 from dataset.tfkeras import preprocessing
 import platform
 import PIL
+from tqdm import tqdm
 
 
 class KProductsTFGenerator:
