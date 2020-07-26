@@ -7,6 +7,7 @@ import platform
 import PIL
 from tqdm import tqdm
 from p_tqdm import p_map
+from functools import partial
 
 
 class KProductsTFGenerator:
@@ -57,10 +58,11 @@ class KProductsTFGenerator:
         if load_all:
             self.load_all(load_all_multiprocess)
 
-    def read_image(self, path):
+    @staticmethod
+    def read_image(path, image_size=(128, 96)):
         try:
             img = Image.open(path)
-            img = img.resize((self.load_all_image_size[1], self.load_all_image_size[0]))
+            img = img.resize(image_size)
             img = np.array(img, dtype=np.uint8)
         except:
             return None
@@ -75,10 +77,12 @@ class KProductsTFGenerator:
         img_paths = [f"{self.dataset_root}{seperator}{file_root}{seperator}{file_name}"
                      for file_root, file_name in self.annotation[["file_root", "file_name"]].values]
 
+        img_loader = partial(KProductsTFGenerator.read_image, image_size=(self.load_all_image_size[1], self.load_all_image_size[0]))
+
         if multiprocess:
-            images = p_map(self.read_image, img_paths, desc="Loading datasets into memory ...")
+            images = p_map(img_loader, img_paths, num_cpus=8, desc="Loading datasets into memory ...")
         else:
-            images = [self.read_image(path) for path in tqdm(img_paths, desc="Loading datasets into memory ...")]
+            images = [img_loader(path) for path in tqdm(img_paths, desc="Loading datasets into memory ...")]
 
         error_idx = [i for i in range(len(images)) if images[i] is None]
 
