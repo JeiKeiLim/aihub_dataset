@@ -6,12 +6,13 @@ from dataset.tfkeras import preprocessing
 import platform
 import PIL
 from tqdm import tqdm
+from p_tqdm import p_map
 
 
 class KProductsTFGenerator:
     def __init__(self, annotation, label_dict, dataset_root, shuffle=False, class_key='class_name', image_size=(224, 224),
                  augment_func=None, augment_in_dtype="numpy", preprocess_func=preprocessing.preprocess_default,
-                 dtype=np.float32, seed=7777, load_all=False, load_all_image_size=(96, 128)):
+                 dtype=np.float32, seed=7777, load_all=False, load_all_image_size=(96, 128), load_all_multiprocess=True):
         """
 
         Args:
@@ -54,33 +55,34 @@ class KProductsTFGenerator:
         self.dataset = None
         
         if load_all:
-            self.load_all()
+            self.load_all(load_all_multiprocess)
 
-    def load_all(self):
+    def read_image(self, path):
+        try:
+            img = Image.open(path)
+            img = img.resize((self.load_all_image_size[1], self.load_all_image_size[0]))
+            img = np.array(img, dtype=np.uint8)
+        except:
+            return None
+
+        return img
+
+    def load_all(self, multiprocess=False):
         seperator = "\\" if platform.system().find("Windows") >= 0 else "/"
 
-        images = np.zeros((self.annotation.shape[0],) + self.load_all_image_size + (3,), dtype=np.uint8)
-        labels = np.zeros((self.annotation.shape[0], ), dtype=np.int32)
+        labels = np.array([self.reverse_label[key] for key in self.annotation[self.class_key].values], dtype=np.int32)
 
-        error_idx = []
+        img_paths = [f"{self.dataset_root}{seperator}{file_root}{seperator}{file_name}"
+                     for file_root, file_name in self.annotation[["file_root", "file_name"]].values]
 
-        for i in tqdm(range(self.annotation.shape[0]), "Loading datasets into memory ..."):
-            annot = self.annotation.iloc[i]
+        if multiprocess:
+            images = p_map(self.read_image, img_paths, desc="Loading datasets into memory ...")
+        else:
+            images = [self.read_image(path) for path in tqdm(img_paths, desc="Loading datasets into memory ...")]
 
-            img_path = f"{self.dataset_root}{seperator}{annot['file_root']}{seperator}{annot['file_name']}"
-            label = self.reverse_label[annot[self.class_key]]
+        error_idx = [i for i in range(len(images)) if images[i] is None]
 
-            try:
-                img = Image.open(img_path)
-                img = img.resize((self.load_all_image_size[1], self.load_all_image_size[0]))
-                images[i] = np.array(img, dtype=np.uint8)
-                labels[i] = label
-            except:
-                error_idx.append(i)
-                print("Error Opening Image File at {}".format(img_path))
-                continue
-
-        images = np.delete(images, error_idx, axis=0)
+        images = np.array([image for image in images if image is not None], dtype=np.uint8)
         labels = np.delete(labels, error_idx)
 
         self.dataset = (images, labels)
