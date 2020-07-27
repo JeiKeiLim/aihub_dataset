@@ -142,14 +142,13 @@ class KProductsTFGenerator:
 
             yield img, label
 
-    def get_tf_dataset(self, batch_size, shuffle=False, reshuffle=True, shuffle_size=64):
+    def get_tf_dataset(self, batch_size):
 
         dataset = tf.data.Dataset.from_generator(self,
                                                  ((tf.as_dtype(self.dtype)), tf.int32),
                                                  (tf.TensorShape([self.image_size[0], self.image_size[1], 3]),
                                                   tf.TensorShape([]))).batch(batch_size)
 
-        dataset = dataset.shuffle(shuffle_size, reshuffle_each_iteration=reshuffle) if shuffle else dataset
         dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
         return dataset
