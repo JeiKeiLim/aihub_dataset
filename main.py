@@ -4,6 +4,7 @@ from dataset.kproducts_dataset import KProductsDataset
 import numpy as np
 import random
 import copy
+import pandas as pd
 
 if __name__ == "__main__":
 
@@ -43,6 +44,9 @@ if __name__ == "__main__":
     parser.add_argument("--plot-n", default=8, type=int, help="Plot number for (plot-class-images)")
     parser.add_argument("--plot-data-type", default="all", type=str, help="Plot Data Type. (all, train, test)")
     parser.add_argument("--plot-save-path", default="", type=str, help="Plot save path. If the path is given, plot will not be shown.")
+    parser.add_argument("--rebuild-by-dir", default=False, action='store_true', help="Rebuild dataset by directory structure")
+    parser.add_argument("--rebuild-root", default="./export/rebuilt", type=str, help="Root directory for rebuilding dataset by directory structure")
+    parser.add_argument("--rebuild-type", default="train-test", type=str, help="(train-test, all)")
 
     args = parser.parse_args()
 
@@ -86,6 +90,15 @@ if __name__ == "__main__":
                                                          include_non_core=args.include_non_core)
     if args.split_train_test:
         dataset.split_train_test(train_ratio=args.split_train_ratio, balance_class=args.split_balance_classes)
+
+    if args.rebuild_by_dir:
+        if args.rebuild_type == "train-test":
+            train_annot = pd.read_csv(config['train_annotation'])
+            test_annot = pd.read_csv(config['test_annotation'])
+            dataset.rebuild_dataset_by_dir(annotation=train_annot, target_root=f"{args.rebuild_root}/train")
+            dataset.rebuild_dataset_by_dir(annotation=test_annot, target_root=f"{args.rebuild_root}/test")
+        else:
+            dataset.rebuild_dataset_by_dir(target_root=f"{args.rebuild_root}")
 
     if args.plot_distribution or args.plot_class_images:
         if args.plot_data_type == "train" or args.plot_data_type == "test":

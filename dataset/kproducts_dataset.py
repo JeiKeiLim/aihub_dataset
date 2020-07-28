@@ -236,6 +236,38 @@ class KProductsDataset:
             for arg in tqdm(mp_args, desc="Resizing Images ..."):
                 KProductsDataset.resize_image(arg, target_w=target_w, target_root=target_root, skip_exists=skip_exists, copy_annotation=copy_annotation)
 
+    @staticmethod
+    def copy_image(args, target_root="./export", reverse_dict=None):
+        assert reverse_dict is not None
+
+        dataset_root, file_root, file_name, class_name = args
+        seperator = "\\" if platform.system().find("Windows") >= 0 else "/"
+
+        src = f"{dataset_root}{seperator}{file_root}{seperator}{file_name}"
+        dest = f"{target_root}{seperator}{reverse_dict[class_name]:02d}_{class_name}"
+        os.makedirs(dest, exist_ok=True)
+        dest = f"{dest}{seperator}{file_name}"
+
+        shutil.copy2(src, dest)
+
+    def rebuild_dataset_by_dir(self, annotation=None, target_root="./export", multiprocess=True, num_cpus=1.0):
+        target_root = target_root.replace("/", "\\") if platform.system().find("Windows") >= 0 else target_root
+
+        if annotation is None:
+            annotation = self.annotations
+
+        mp_args = annotation[['file_root', 'file_name', "class_name"]].values.tolist()
+        mp_args = [[self.config['dataset_root']] + arg for arg in mp_args]
+
+        reverse_dict = {v: int(k) for k, v in self.config['label_dict'].items()}
+
+        if multiprocess:
+            p_umap(partial(KProductsDataset.copy_image, target_root=target_root, reverse_dict=reverse_dict),
+                   mp_args, desc="Rebuilding Dataset by directory ...", num_cpus=num_cpus)
+        else:
+            for arg in tqdm(mp_args, desc="Rebuilding Dataset by directory ..."):
+                KProductsDataset.copy_image(arg, target_root=target_root, reverse_dict=reverse_dict)
+
     def get_distribution(self, key='class'):
         """
         Get distributions of dataset by key
