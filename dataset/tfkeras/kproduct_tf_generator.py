@@ -13,7 +13,8 @@ from functools import partial
 class KProductsTFGenerator:
     def __init__(self, annotation, label_dict, dataset_root, shuffle=False, class_key='class_name', image_size=(224, 224),
                  augment_func=None, augment_in_dtype="numpy", preprocess_func=preprocessing.preprocess_default,
-                 dtype=np.float32, seed=7777, load_all=False, load_all_image_size=(147, 196), load_all_multiprocess=True):
+                 dtype=np.float32, seed=7777, load_all=False, load_all_image_size=(147, 196), load_all_multiprocess=True,
+                 data_format="channels_last"):
         """
 
         Args:
@@ -51,6 +52,7 @@ class KProductsTFGenerator:
         self.dtype = dtype
         self.seed = seed
         self.augment_in_dtype = augment_in_dtype
+        self.data_format = data_format
 
         self.load_all_image_size = load_all_image_size
         self.dataset = None
@@ -140,14 +142,17 @@ class KProductsTFGenerator:
             img = img.resize((self.image_size[1], self.image_size[0]))
             img = self.preprocess_func(img, dtype=self.dtype)
 
+            img = np.swapaxes(img.T, 1, 2) if self.data_format == "channels_first" else img
+
             yield img, label
 
     def get_tf_dataset(self, batch_size):
+        img_shape = tf.TensorShape([self.image_size[0], self.image_size[1], 3])
+        img_shape = img_shape if self.data_format == "channels_last" else (img_shape[-1],) + img_shape[:2]
 
         dataset = tf.data.Dataset.from_generator(self,
                                                  ((tf.as_dtype(self.dtype)), tf.int32),
-                                                 (tf.TensorShape([self.image_size[0], self.image_size[1], 3]),
-                                                  tf.TensorShape([]))).batch(batch_size)
+                                                 (img_shape, tf.TensorShape([]))).batch(batch_size)
 
         dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE).cache()
 
