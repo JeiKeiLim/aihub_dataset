@@ -14,7 +14,7 @@ class KProductsTFGenerator:
     def __init__(self, annotation, label_dict, dataset_root, shuffle=False, class_key='class_name', image_size=(224, 224),
                  augment_func=None, augment_in_dtype="numpy", preprocess_func=preprocessing.preprocess_default,
                  dtype=np.float32, seed=7777, load_all=False, load_all_image_size=(147, 196), load_all_multiprocess=True,
-                 data_format="channels_last"):
+                 data_format="channels_last", use_cache=True, prefetch=True):
         """
 
         Args:
@@ -56,6 +56,8 @@ class KProductsTFGenerator:
 
         self.load_all_image_size = load_all_image_size
         self.dataset = None
+        self.use_cache = use_cache
+        self.prefetch = prefetch
         
         if load_all:
             self.load_all(load_all_multiprocess)
@@ -154,7 +156,11 @@ class KProductsTFGenerator:
                                                  ((tf.as_dtype(self.dtype)), tf.int32),
                                                  (img_shape, tf.TensorShape([]))).batch(batch_size)
 
-        dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE).cache()
+        if self.prefetch:
+            dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+
+        if self.use_cache:
+            dataset = dataset.cache()
 
         return dataset
 
