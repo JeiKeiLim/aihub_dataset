@@ -13,7 +13,7 @@ from functools import partial
 class KProductsTFGenerator:
     def __init__(self, annotation, label_dict, dataset_root, shuffle=False, class_key='class_name', image_size=(224, 224),
                  augment_func=None, augment_in_dtype="numpy", preprocess_func=preprocessing.preprocess_default,
-                 dtype=np.float32, seed=7777, load_all=False, load_all_image_size=(192, 256), load_all_multiprocess=True):
+                 dtype=np.float32, seed=7777, load_all=False, load_all_image_size=(147, 196), load_all_multiprocess=True):
         """
 
         Args:
@@ -149,7 +149,7 @@ class KProductsTFGenerator:
                                                  (tf.TensorShape([self.image_size[0], self.image_size[1], 3]),
                                                   tf.TensorShape([]))).batch(batch_size)
 
-        dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+        dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE).cache()
 
         return dataset
 
