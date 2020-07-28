@@ -39,7 +39,9 @@ def preprocess_effnet(x, dtype=np.float32):
 
 
 def get_preprocess_by_model_name(model_name):
-    if model_name.startswith("mobilenet") or \
+    if model_name.startswith("logistic"):
+        return preprocess_zero2one
+    elif model_name.startswith("mobilenet") or \
             (model_name.startswith("resnet") and model_name.endswith("v2")) or \
             model_name.startswith("inception") or \
             model_name.startswith("xception") or \
