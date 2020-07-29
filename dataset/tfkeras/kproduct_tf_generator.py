@@ -25,14 +25,14 @@ class KProductsTFGenerator:
             class_key (str): Class Key Name. ('소분류', '중분류')
             image_size (tuple): (Height, Width)
             augment_func (function, None): Augmentation Function that takes one input of NumPy Array (height, width, channel)
-            augment_in_dtype (str): Augmentation Function Input Data Type. Possible value: ('numpy', 'pil')
+            augment_in_dtype (str): Augmentation Function Input Data Type. Possible value: ('numpy', 'pil', 'tensor')
             preprocess_func (dataset.tfkeras.preprocessing function): Pre Processing function that takes one input of PIL.Image or Numpy Array
             dtype (np.dtype): Data type for target model.
             seed (int): Random seed.
             load_all (bool): Load all images into memory. It reuiqres large memory size.
             load_all_image_size (tuple): Target resizing image size when load all. (height, width)
         """
-        assert augment_in_dtype in ['numpy', 'pil']
+        assert augment_in_dtype in ['numpy', 'pil', "tensor"]
 
         if type(annotation) == pd.DataFrame:
             self.annotation = annotation
@@ -113,6 +113,13 @@ class KProductsTFGenerator:
 
         return img, label
 
+    def apply_tf_augment(self, img, label):
+        print(img, label)
+        if self.augment_func is not None:
+            img = self.augment_func(img)
+
+        return img, label
+
     def apply_augment(self, img):
         if self.augment_func is not None:
             if type(img) != np.ndarray and self.augment_in_dtype == 'numpy':
@@ -139,7 +146,8 @@ class KProductsTFGenerator:
             if img is None:
                 continue
 
-            img = self.apply_augment(img)
+            if self.augment_in_dtype != "tensor":
+                img = self.apply_augment(img)
 
             img = img.resize((self.image_size[1], self.image_size[0]))
             img = self.preprocess_func(img, dtype=self.dtype)
@@ -154,13 +162,17 @@ class KProductsTFGenerator:
 
         dataset = tf.data.Dataset.from_generator(self,
                                                  ((tf.as_dtype(self.dtype)), tf.int32),
-                                                 (img_shape, tf.TensorShape([]))).batch(batch_size)
+                                                 (img_shape, tf.TensorShape([])))
+        if self.use_cache:
+            dataset = dataset.cache()
+
+        if self.augment_in_dtype == "tensor":
+            dataset = dataset.map(self.apply_tf_augment, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
+        dataset = dataset.batch(batch_size)
 
         if self.prefetch:
             dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
-
-        if self.use_cache:
-            dataset = dataset.cache()
 
         return dataset
 
