@@ -74,20 +74,51 @@ class KProductsDataset:
             plt.rcParams['axes.unicode_minus'] = False
             plt.rcParams['font.family'] = possible_fonts[0]
 
-    def split_train_test(self, train_ratio=0.7, balance_class=False):
+    def split_train_test(self, train_ratio=0.7, balance_type='min', alpha=0.3, beta=1.5, plot_distribution=False):
+        """
+
+        Args:
+            train_ratio (float): train ratio respect to dataset image number
+            balance_type (str): ('min', 'over', 'none')
+                                min: Limit class image numbers by minimum sample class.
+                                over: Reduce class image numbers by min((number of class images) * alpha, (minimum sample class)*beta)
+            alpha:
+
+        Returns:
+
+        """
+
         #TODO: Over-sample
 
-        if balance_class:
+
+        if balance_type == 'min':
             class_distribution = self.get_distribution(key=self.config['class_key'])
             min_sample = min(class_distribution.values())
 
-            annotations = [self.annotations.query("{} == '{}'".format(self.config['class_key'], label)).sample(n=min_sample, random_state=self.seed)
+            annotations1 = [self.annotations.query("{} == '{}'".format(self.config['class_key'], label)).sample(n=min_sample, random_state=self.seed)
                            for label in self.unique_labels]
 
-            annotations = pd.concat(annotations)
+            annotations = pd.concat(annotations1)
+            annotations = annotations.sample(n=annotations.shape[0], random_state=self.seed).reset_index(drop=True)
+
+        ## jason
+        elif balance_type == 'over':
+            class_distribution = self.get_distribution(key=self.config['class_key'])
+            min_sample = min(class_distribution.values())
+
+            sample_cnt = {}
+            for i in self.config['label_dict'].values():
+                sample_cnt[i] = int(min(max(class_distribution[i]*alpha, min_sample*beta), class_distribution[i]))
+
+
+            annotations1 = [self.annotations.query("{} == '{}'".format(self.config['class_key'], label)).sample(n=sample_cnt[label], random_state=self.seed)
+                           for label in self.unique_labels]
+
+            annotations = pd.concat(annotations1)
             annotations = annotations.sample(n=annotations.shape[0], random_state=self.seed).reset_index(drop=True)
         else:
             annotations = self.annotations.sample(n=self.annotations.shape[0], random_state=self.seed).reset_index(drop=True)
+
 
         n_train = int(annotations.shape[0]*train_ratio)
 
@@ -101,8 +132,8 @@ class KProductsDataset:
         ext_idx = file_name.rfind('.')
         file_name = file_name[:ext_idx] if ext_idx > 0 else file_name
 
-        self.config['train_annotation'] = os.path.abspath(f"{root}{seperator}{file_name}_train.csv")
-        self.config['test_annotation'] = os.path.abspath(f"{root}{seperator}{file_name}_test.csv")
+        self.config['train_annotation'] = os.path.abspath(f"{root}{seperator}{file_name}_train.csv").replace("\\", "\\\\")
+        self.config['test_annotation'] = os.path.abspath(f"{root}{seperator}{file_name}_test.csv").replace("\\", "\\\\")
 
         train_annotation.to_csv(self.config['train_annotation'], index=False)
         test_annotation.to_csv(self.config['test_annotation'], index=False)
@@ -112,6 +143,15 @@ class KProductsDataset:
 
         print("Train Annotation({:,}) saved to {}".format(train_annotation.shape[0], self.config['train_annotation']))
         print("Test Annotation({:,}) saved to {}".format(test_annotation.shape[0], self.config['test_annotation']))
+
+        if plot_distribution:
+            annotations = self.annotations
+            self.plot_class_distributions(title_prefix="Entire ")
+            self.annotations = train_annotation
+            self.plot_class_distributions(title_prefix="Train ")
+            self.annotations = test_annotation
+            self.plot_class_distributions(title_prefix="Test ")
+            self.annotations = annotations
 
     def get_annotation_path_list(self, multiprocess=False, sort=True):
         annot_path_list = [(root, file_name)

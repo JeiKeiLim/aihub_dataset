@@ -34,8 +34,11 @@ if __name__ == "__main__":
     parser.add_argument("--reconstruct-annotation-name", default="converted_annotation.csv", type=str, help="Reconstruct dataset annotation file name")
     parser.add_argument("--no-include-non-core", dest="include_non_core", default=True, action='store_false', help="Whether including non-core clustering index")
     parser.add_argument("--split-train-test", default=False, action='store_true', help="Splitting training and test set (Annotation only)")
-    parser.add_argument("--split-balance-classes", default=False, action='store_true', help="Balancing Class Labels while splitting training and test set")
+    parser.add_argument("--split-balance-classes", default="none", type=str, help="Balancing Class Method while splitting training and test set")
+    parser.add_argument("--split-balance-classes-plot", default=False, action='store_true', help="Plot distribution graphs after splitting train/test dataset")
     parser.add_argument("--split-train-ratio", default=0.7, type=float, help="Splitting Training dataset ratio")
+    parser.add_argument("--split-alpha", default=0.3, type=float)
+    parser.add_argument("--split-beta", default=1.5, type=float)
     parser.add_argument("--seed", default=7777, type=int, help="Seed value to match random numbers")
     parser.add_argument("--plot-distribution", default=False, action='store_true', help="Plot Class Distribution Image")
     parser.add_argument("--plot-all-class-images", default=False, action='store_true', help="Plot Every Class Images")
@@ -89,7 +92,11 @@ if __name__ == "__main__":
                                                          target_annotation_name=args.reconstruct_annotation_name,
                                                          include_non_core=args.include_non_core)
     if args.split_train_test:
-        dataset.split_train_test(train_ratio=args.split_train_ratio, balance_class=args.split_balance_classes)
+        dataset.split_train_test(train_ratio=args.split_train_ratio,
+                                 balance_type=args.split_balance_classes,
+                                 alpha=args.split_alpha,
+                                 beta=args.split_beta,
+                                 plot_distribution=args.split_balance_classes_plot)
 
     if args.rebuild_by_dir:
         if args.rebuild_type == "train-test":
