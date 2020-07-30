@@ -1,26 +1,35 @@
 import tensorflow as tf
 import numpy as np
+import tensorflow_addons as tfa
 
 
 class TFAugmentPolicy:
-    def __init__(self):
+    def __init__(self, data_format="channels_last", resize=(None, None)):
+        self.data_format = data_format
+        self.resize = resize
+
         self.policy = [
             (flip_horizontal, 0.2),
             (color, 0.3),
             (rotate, 0.2),
-             (zoom, 0.3)
+            (rotate, 0.3)
         ]
 
     def __call__(self, x):
-        for augment, p in self.policy:
-            if np.random.rand() < p:
-                x = augment(x)
+        if self.data_format == "channels_first":
+            x = tf.transpose(x, perm=[1, 2, 0])
 
+        for augment, p in self.policy:
+            x = tf.cond(tf.random.uniform(shape=(), minval=0, maxval=1.0) < p,
+                        lambda: augment(x), lambda: x)
+
+        if self.resize[0] and self.resize[1]:
+            x = tf.image.resize(x, self.resize)
         return x
 
     def __repr__(self):
         return "TFAugment DeepInAir AIHub KProducts Policy"
-    
+
 
 # Source from https://www.wouterbulten.nl/blog/tech/data-augmentation-using-tensorflow-data-dataset/
 def flip_horizontal(x: tf.Tensor) -> tf.Tensor:
@@ -75,6 +84,16 @@ def rotate(x: tf.Tensor) -> tf.Tensor:
         Augmented image
     """
     return tf.image.rot90(x, tf.random.uniform(shape=[], minval=0, maxval=4, dtype=tf.int32))
+
+
+@tf.function
+def rotate_tf(image):
+    if image.shape.__len__() == 4:
+        random_angles = tf.random.uniform(shape=(tf.shape(image)[0],), minval=-np.pi / 4, maxval=np.pi / 4)
+    if image.shape.__len__() == 3:
+        random_angles = tf.random.uniform(shape=(), minval=-np.pi / 4, maxval=np.pi / 4)
+
+    return tfa.image.rotate(image, random_angles)
 
 
 def zoom(x: tf.Tensor) -> tf.Tensor:
