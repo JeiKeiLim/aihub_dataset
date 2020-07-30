@@ -290,8 +290,7 @@ class KProductsDataset:
 
         target_root = target_root.replace("/", "\\") if platform.system().find("Windows") >= 0 else target_root
 
-        mp_args = self.annotations[['file_root', 'file_name']].values.tolist()
-        mp_args = [[self.config['dataset_root']] + arg for arg in mp_args]
+        mp_args = self.annotations[['root', 'file_root', 'file_name']].values.tolist()
 
         if multiprocess:
             p_umap(partial(KProductsDataset.resize_image, target_w=target_w, target_root=target_root, skip_exists=skip_exists, copy_annotation=copy_annotation),
@@ -360,7 +359,7 @@ class KProductsDataset:
 
         target = self.annotations.iloc[idx]
 
-        img_path = f"{self.config['dataset_root']}{seperator}{target['file_root']}{seperator}{target['file_name']}"
+        img_path = f"{target['root']}{seperator}{target['file_root']}{seperator}{target['file_name']}"
         try:
             img = Image.open(img_path)
         except:

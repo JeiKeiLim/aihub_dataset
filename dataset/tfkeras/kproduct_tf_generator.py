@@ -101,7 +101,7 @@ class KProductsTFGenerator:
         else:
             seperator = "\\" if platform.system().find("Windows") >= 0 else "/"
             annot = annotation.iloc[i]
-            img_path = f"{self.dataset_root}{seperator}{annot['file_root']}{seperator}{annot['file_name']}"
+            img_path = f"{annot['root']}{seperator}{annot['file_root']}{seperator}{annot['file_name']}"
 
             label = self.reverse_label[annot[self.class_key]]
 

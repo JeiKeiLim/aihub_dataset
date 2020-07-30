@@ -282,7 +282,7 @@ class ClusterData:
                 else:
                     resize_size = plot_img_size
 
-                img_path = f"{self.dataset.config['dataset_root']}{seperator}{annotation.iloc[i]['file_root']}{seperator}{annotation.iloc[i]['file_name']}"
+                img_path = f"{annotation.iloc[i]['root']}{seperator}{annotation.iloc[i]['file_root']}{seperator}{annotation.iloc[i]['file_name']}"
                 img = Image.open(img_path)
                 img = img.resize(resize_size)
 
