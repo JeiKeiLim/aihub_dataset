@@ -214,14 +214,15 @@ class KProductsDataset:
         Returns:
 
         """
+        convert_annot_func = partial(convert_annotation, dataset_root=self.config['dataset_root'], encoding=self.encoding)
         if os.path.isfile(self.config['annotation_path']) and refresh is False:
             annotations = pd.read_csv(self.config['annotation_path'])
         else:
             annot_path_list = self.get_annotation_path_list(multiprocess=multiprocess)
             if multiprocess:
-                annotations = p_map(convert_annotation, annot_path_list, desc="Converting Annotations ...")
+                annotations = p_map(convert_annot_func, annot_path_list, desc="Converting Annotations ...")
             else:
-                annotations = [convert_annotation([root, file_name]) for root, file_name in tqdm(annot_path_list, desc="Converting Annotations ...")]
+                annotations = [convert_annot_func([root, file_name]) for root, file_name in tqdm(annot_path_list, desc="Converting Annotations ...")]
 
             annotations = [annotation for annotation in annotations if annotation is not None]
             annotations = pd.DataFrame(annotations)
@@ -471,7 +472,7 @@ class KProductsDataset:
         return fig, ax
 
 
-def convert_annotation(args, encoding='UTF8'):
+def convert_annotation(args, dataset_root="", encoding='UTF8'):
     """
     Convert Original annotation json file to python dict type
 
@@ -504,6 +505,7 @@ def convert_annotation(args, encoding='UTF8'):
     roots = root.split(seperator)
     file_root = seperator.join(roots[-2:])
     new_annot = dict()
+    new_annot['root'] = dataset_root
     new_annot['file_name'] = annot['image']['identifier']
     new_annot['file_root'] = file_root
     new_annot['img_width'] = annot['image']['imsize'][0]

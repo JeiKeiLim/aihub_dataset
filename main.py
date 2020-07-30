@@ -1,6 +1,6 @@
 import json
 import argparse
-from dataset.kproducts_dataset import KProductsDataset
+from dataset import KProductsDataset, KProductsExtra
 import numpy as np
 import random
 import copy
@@ -51,6 +51,12 @@ if __name__ == "__main__":
     parser.add_argument("--rebuild-by-dir", default=False, action='store_true', help="Rebuild dataset by directory structure")
     parser.add_argument("--rebuild-root", default="./export/rebuilt", type=str, help="Root directory for rebuilding dataset by directory structure")
     parser.add_argument("--rebuild-type", default="train-test", type=str, help="(train-test, all)")
+    parser.add_argument("--extra-root", default="", type=str, help="Extra dataset root")
+    parser.add_argument("--merge-extra", default=False, action='store_true', help="Merge Extra dataset")
+    parser.add_argument("--merge-path", default="./merged.csv", type=str, help="Merged annotation csv file root")
+    parser.add_argument("--merge-plot", default=False, action='store_true', help="Plot after merge annotation with extra dataset")
+    parser.add_argument("--merge-multiply", default=5, type=int)
+    parser.add_argument("--merge-beta", default=2, type=int)
 
     args = parser.parse_args()
 
@@ -92,6 +98,11 @@ if __name__ == "__main__":
             cluster_data.reconstruct_from_cluster_result(target_root=args.reconstruct_root,
                                                          target_annotation_name=args.reconstruct_annotation_name,
                                                          include_non_core=args.include_non_core)
+
+    if args.merge_extra:
+        extra = KProductsExtra(dataset, args.extra_root, seed=args.seed)
+        extra.merge_annotation(args.merge_path, multiply=args.merge_multiply, beta=args.merge_beta, plot_result=args.merge_plot)
+
     if args.split_train_test:
         dataset.split_train_test(train_ratio=args.split_train_ratio,
                                  balance_type=args.split_balance_classes,
