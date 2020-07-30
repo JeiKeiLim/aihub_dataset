@@ -6,6 +6,7 @@ from dataset.tfkeras import KProductsTFGenerator
 from functools import partial
 from p_tqdm import p_map
 import multiprocess as mp
+import platform
 
 
 class KProductsTFGeneratorTTA(KProductsTFGenerator):
@@ -33,16 +34,22 @@ class KProductsTFGeneratorTTA(KProductsTFGenerator):
         assert self.augment_func is not None, "Augmentation function must be defined!"
 
         self.multiprocess = multiprocess
-
-    # def apply_tf_augment(self, img, label):
-    #     print("tf_augment: ", img)
-    #     imgs = []
-    #     for i in range(self.n_tta):
-    #         img = self.augment_func(img)
-    #         imgs.append(img)
-    #     imgs = tf.concat(imgs, axis=-1 if self.data_format == "channels_last" else 0)
-    #
-    #     return imgs, label
+    
+    @staticmethod
+    def _tta_generator(dataset=None, apply_augment=None, shuffle=False):
+        if shuffle:
+            np.random.shuffle(dataset)
+    
+        for i in range(len(dataset)):
+            try:
+                img = Image.open(dataset[i][0]).convert("RGB")
+            except:
+                print("Error Opening Image at {}".format(dataset[i][0]))
+                continue
+    
+            img = apply_augment(img)
+    
+            yield img, dataset[i][1]
 
     @staticmethod
     def augment_pipeline(img, preprocess_func=None, augment_func=None, data_format="channels_first",
@@ -60,36 +67,18 @@ class KProductsTFGeneratorTTA(KProductsTFGenerator):
 
         return img
 
-    def apply_augment(self, img):
-        if type(img) != np.ndarray and self.augment_in_dtype == 'numpy':
+    @staticmethod
+    def apply_augment(img, pipeline=None, augment_in_dtype="pil", multiprocess=False, n_tta=3):
+        if type(img) != np.ndarray and augment_in_dtype == 'numpy':
             img = np.array(img, dtype=np.uint8)
-        if type(img) == np.ndarray and self.augment_in_dtype == 'pil':
+        if type(img) == np.ndarray and augment_in_dtype == 'pil':
             img = Image.fromarray(img)
 
-        pipeline = partial(KProductsTFGeneratorTTA.augment_pipeline, preprocess_func=self.preprocess_func,
-                           augment_func=self.augment_func, data_format=self.data_format,
-                           image_size=self.image_size, dtype=self.dtype)
-
-        if self.multiprocess:
-            imgs = p_map(pipeline, [img for _ in range(self.n_tta)],
-                         disable=True, num_cpus=min(mp.cpu_count(), self.n_tta))
+        if multiprocess:
+            imgs = p_map(pipeline, [img for _ in range(n_tta)],
+                         disable=True, num_cpus=min(mp.cpu_count()-1, n_tta))
         else:
-            imgs = [pipeline(img) for _ in range(self.n_tta)]
-
-        # imgs = []
-        # ori_img = img
-        # for i in range(self.n_tta):
-        #     img = self.augment_func(ori_img)
-        #
-        #     if type(img) == np.ndarray:
-        #         img = Image.fromarray(img)
-        #
-        #     img = img.resize((self.image_size[1], self.image_size[0]))
-        #
-        #     img = self.preprocess_func(img, dtype=self.dtype)
-        #     img = np.swapaxes(img.T, 1, 2) if self.data_format == "channels_first" else img
-        #
-        #     imgs.append(img)
+            imgs = [pipeline(img) for _ in range(n_tta)]
 
         imgs = np.concatenate(imgs, axis=-1)
         return imgs
@@ -110,19 +99,31 @@ class KProductsTFGeneratorTTA(KProductsTFGenerator):
             #     img = self.apply_tf_augment(img)
             # else:
             if self.augment_in_dtype != "tensor":
-                img = self.apply_augment(img)
+                img = apply_augment(img)
             else:
                 img = img.resize((self.image_size[1], self.image_size[0]))
 
             yield img, label
 
     def get_tf_dataset(self, batch_size):
+        seperator = "\\" if platform.system().find("Windows") >= 0 else "/"
+        dataset = [(f"{root}{seperator}{file_root}{seperator}{file_name}", self.reverse_label[class_name])
+                     for root, file_root, file_name, class_name in self.annotation[['root', 'file_root', 'file_name', "class_name"]].values]
+
+        pipeline = partial(KProductsTFGeneratorTTA.augment_pipeline, preprocess_func=self.preprocess_func,
+                           augment_func=self.augment_func, data_format=self.data_format,
+                           image_size=self.image_size, dtype=self.dtype)
+
+        apply_augment = partial(KProductsTFGeneratorTTA.apply_augment, pipeline=pipeline, augment_in_dtype=self.augment_in_dtype,
+                                multiprocess=self.multiprocess, n_tta=self.n_tta)
+        generator = partial(KProductsTFGeneratorTTA._tta_generator, dataset=dataset, apply_augment=apply_augment, shuffle=self.shuffle)
+
         img_shape = tf.TensorShape([self.image_size[0], self.image_size[1],
                                     3 if self.augment_in_dtype == "tensor" else 3*self.n_tta])
 
         img_shape = img_shape if self.data_format == "channels_last" else (img_shape[-1],) + img_shape[:2]
 
-        dataset = tf.data.Dataset.from_generator(self,
+        dataset = tf.data.Dataset.from_generator(generator,
                                                  ((tf.as_dtype(self.dtype)), tf.int32),
                                                  (img_shape, tf.TensorShape([])))
         if self.use_cache:
