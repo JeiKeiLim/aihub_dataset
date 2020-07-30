@@ -143,7 +143,8 @@ class ClusterData:
             for annotation in tqdm(annot_by_file_root, "Vectorization Dataset ..."):
                 self.vectorize_images(annotation, batch_size=batch_size)
 
-    def reconstruct_from_cluster_result(self, target_root="./export", target_annotation_name="converted_annotation.csv", include_non_core=True):
+    def reconstruct_from_cluster_result(self, target_root="./export", target_annotation_name="converted_annotation.csv",
+                                        include_non_core=True, ignore_under_median=True):
         seperator = "\\" if platform.system().find("Windows") >= 0 else "/"
         target_root = target_root.replace("/", "\\") if seperator == "\\" else target_root
 

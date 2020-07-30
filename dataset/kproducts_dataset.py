@@ -74,12 +74,12 @@ class KProductsDataset:
             plt.rcParams['axes.unicode_minus'] = False
             plt.rcParams['font.family'] = possible_fonts[0]
 
-    def split_train_test(self, train_ratio=0.7, balance_type='min', alpha=0.3, beta=1.5, plot_distribution=False):
+    def split_train_test(self, train_ratio=0.7, balance_type='min', alpha=0.3, beta=1.5, plot_distribution=False, skip_n=2):
         """
 
         Args:
             train_ratio (float): train ratio respect to dataset image number
-            balance_type (str): ('min', 'over', 'none')
+            balance_type (str): ('min', 'over', 'over2', 'none')
                                 min: Limit class image numbers by minimum sample class.
                                 over: Reduce class image numbers by min((number of class images) * alpha, (minimum sample class)*beta)
             alpha:
@@ -87,39 +87,56 @@ class KProductsDataset:
         Returns:
 
         """
+        class_distribution = self.get_distribution(key=self.config['class_key'])
+        median_sample = np.median(list(class_distribution.values()))
 
-        #TODO: Over-sample
+        original_annotations = self.annotations
 
+        if skip_n > 1:
+            annot_by_class = [self.annotations.query("{} == '{}'".format(self.config['class_key'], label))
+                              for label in self.unique_labels]
+            annot_by_class = [annot.iloc[range(0, annot.shape[0], skip_n if annot.shape[0] > median_sample else 1)]
+                               for annot in annot_by_class]
+            skip_annotation = pd.concat(annot_by_class)
+        else:
+            skip_annotation = original_annotations
+
+        self.annotations = skip_annotation
+        class_distribution = self.get_distribution(key=self.config['class_key'])
+
+        min_sample = min(class_distribution.values())
 
         if balance_type == 'min':
-            class_distribution = self.get_distribution(key=self.config['class_key'])
-            min_sample = min(class_distribution.values())
-
             annotations1 = [self.annotations.query("{} == '{}'".format(self.config['class_key'], label)).sample(n=min_sample, random_state=self.seed)
                            for label in self.unique_labels]
 
             annotations = pd.concat(annotations1)
             annotations = annotations.sample(n=annotations.shape[0], random_state=self.seed).reset_index(drop=True)
-
         ## jason
         elif balance_type == 'over':
-            class_distribution = self.get_distribution(key=self.config['class_key'])
-            min_sample = min(class_distribution.values())
-
             sample_cnt = {}
             for i in self.config['label_dict'].values():
                 sample_cnt[i] = int(min(max(class_distribution[i]*alpha, min_sample*beta), class_distribution[i]))
-
 
             annotations1 = [self.annotations.query("{} == '{}'".format(self.config['class_key'], label)).sample(n=sample_cnt[label], random_state=self.seed)
                            for label in self.unique_labels]
 
             annotations = pd.concat(annotations1)
             annotations = annotations.sample(n=annotations.shape[0], random_state=self.seed).reset_index(drop=True)
+        elif balance_type == 'over2':
+            limit_sample = lambda x: max(x*alpha, min_sample * beta)
+            # limit_sample = lambda x: min(max(x, max_limit)*alpha, max(min_sample*beta, x))
+            target_size = {key: limit_sample(v) for key, v in class_distribution.items()}
+            annotations1 = [self.annotations.query("{} == '{}'".format(self.config['class_key'], label)).sample(n=int(target_size[label]),
+                                                                                                                random_state=self.seed,
+                                                                                                                replace=True)
+                            for label in self.unique_labels]
+            annotations = pd.concat(annotations1)
+            annotations = annotations.sample(n=annotations.shape[0], random_state=self.seed).reset_index(drop=True)
         else:
             annotations = self.annotations.sample(n=self.annotations.shape[0], random_state=self.seed).reset_index(drop=True)
 
-
+        self.annotations = original_annotations
         n_train = int(annotations.shape[0]*train_ratio)
 
         train_annotation = annotations.iloc[:n_train]
@@ -145,13 +162,19 @@ class KProductsDataset:
         print("Test Annotation({:,}) saved to {}".format(test_annotation.shape[0], self.config['test_annotation']))
 
         if plot_distribution:
+            fig, axes = plt.subplots(1, 3, figsize=(20, 5))
+
             annotations = self.annotations
-            self.plot_class_distributions(title_prefix="Entire ")
+            self.plot_class_distributions(title_prefix="Entire ", ax=axes[0])
             self.annotations = train_annotation
-            self.plot_class_distributions(title_prefix="Train ")
+            self.plot_class_distributions(title_prefix="Train ", ax=axes[1])
             self.annotations = test_annotation
-            self.plot_class_distributions(title_prefix="Test ")
+            self.plot_class_distributions(title_prefix="Test ", ax=axes[2])
             self.annotations = annotations
+
+            fig.suptitle(f"Balance: {balance_type}, train_ratio: {train_ratio}, alpha: {alpha}, beta: {beta}, Split from {annotations.shape[0]:,} to ({train_annotation.shape[0]:,} / {test_annotation.shape[0]:,})")
+            fig.tight_layout()
+            fig.show()
 
     def get_annotation_path_list(self, multiprocess=False, sort=True):
         annot_path_list = [(root, file_name)
@@ -414,7 +437,7 @@ class KProductsDataset:
         else:
             plt.savefig(save_path)
 
-    def plot_class_distributions(self, title_prefix="", figsize=(12, 8), save_path=""):
+    def plot_class_distributions(self, title_prefix="", figsize=(12, 8), save_path="", ax=None):
         """
         Plot class data number distribution
         """
@@ -426,20 +449,26 @@ class KProductsDataset:
         class_names = list(self.config['label_dict'].values())
         class_names = [f"{i:02d}: {name}" for i, name in enumerate(class_names)]
 
-        fig, ax = plt.subplots(figsize=figsize)
-        ax.barh(class_names, dists)
+        fig = None
+        if ax is None:
+            fig, ax = plt.subplots(figsize=figsize)
 
+        ax.barh(class_names, dists)
         for i, v in enumerate(dists):
             ax.text(v+0.05, i-.25, f"{v:,}", color='k', fontweight='bold')
 
         ax.set_title(f"{title_prefix}Class Distribution")
-        fig.tight_layout()
+        if fig is not None:
+            fig.tight_layout()
 
-        if save_path == "":
-            plt.show()
-        else:
-            fig.savefig(save_path)
-            plt.close(fig)
+        if fig is not None:
+            if save_path == "":
+                plt.show()
+            else:
+                fig.savefig(save_path)
+                plt.close(fig)
+
+        return fig, ax
 
 
 def convert_annotation(args, encoding='UTF8'):

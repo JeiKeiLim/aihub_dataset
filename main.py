@@ -39,6 +39,7 @@ if __name__ == "__main__":
     parser.add_argument("--split-train-ratio", default=0.7, type=float, help="Splitting Training dataset ratio")
     parser.add_argument("--split-alpha", default=0.3, type=float)
     parser.add_argument("--split-beta", default=1.5, type=float)
+    parser.add_argument("--split-skip", default=1, type=int)
     parser.add_argument("--seed", default=7777, type=int, help="Seed value to match random numbers")
     parser.add_argument("--plot-distribution", default=False, action='store_true', help="Plot Class Distribution Image")
     parser.add_argument("--plot-all-class-images", default=False, action='store_true', help="Plot Every Class Images")
@@ -96,6 +97,7 @@ if __name__ == "__main__":
                                  balance_type=args.split_balance_classes,
                                  alpha=args.split_alpha,
                                  beta=args.split_beta,
+                                 skip_n=args.split_skip,
                                  plot_distribution=args.split_balance_classes_plot)
 
     if args.rebuild_by_dir:
