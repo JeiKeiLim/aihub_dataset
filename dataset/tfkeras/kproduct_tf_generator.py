@@ -107,6 +107,7 @@ class KProductsTFGenerator:
 
             try:
                 img = Image.open(img_path)
+                img = img.convert("RGB")
             except:
                 print("Error Opening Image File at {}".format(img_path))
                 return None, None
