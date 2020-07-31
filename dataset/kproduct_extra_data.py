@@ -35,6 +35,7 @@ class KProductsExtra:
         merged_annotations.reset_index(drop=True)
 
         merged_annotations.to_csv(target_path, index=False)
+        annotations.to_csv(f"{target_path[:-4]}_extra.csv", index=False)
 
         if plot_result:
             fig, axes = plt.subplots(1, 3, figsize=(20, 5))

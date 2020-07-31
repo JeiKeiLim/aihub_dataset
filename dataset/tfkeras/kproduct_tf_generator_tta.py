@@ -83,27 +83,27 @@ class KProductsTFGeneratorTTA(KProductsTFGenerator):
         imgs = np.concatenate(imgs, axis=-1)
         return imgs
 
-    def __call__(self):
-        if self.shuffle:
-            annotation = self.annotation.sample(n=self.annotation.shape[0]).reset_index(drop=True)
-        else:
-            annotation = self.annotation
-
-        for i in range(annotation.shape[0]):
-            img, label = self.get_data(annotation, i)
-
-            if img is None:
-                continue
-
-            # if self.augment_in_dtype == "tensor":
-            #     img = self.apply_tf_augment(img)
-            # else:
-            if self.augment_in_dtype != "tensor":
-                img = apply_augment(img)
-            else:
-                img = img.resize((self.image_size[1], self.image_size[0]))
-
-            yield img, label
+    # def __call__(self):
+    #     if self.shuffle:
+    #         annotation = self.annotation.sample(n=self.annotation.shape[0]).reset_index(drop=True)
+    #     else:
+    #         annotation = self.annotation
+    #
+    #     for i in range(annotation.shape[0]):
+    #         img, label = self.get_data(annotation, i)
+    #
+    #         if img is None:
+    #             continue
+    #
+    #         # if self.augment_in_dtype == "tensor":
+    #         #     img = self.apply_tf_augment(img)
+    #         # else:
+    #         if self.augment_in_dtype != "tensor":
+    #             img = apply_augment(img)
+    #         else:
+    #             img = img.resize((self.image_size[1], self.image_size[0]))
+    #
+    #         yield img, label
 
     def get_tf_dataset(self, batch_size):
         seperator = "\\" if platform.system().find("Windows") >= 0 else "/"
